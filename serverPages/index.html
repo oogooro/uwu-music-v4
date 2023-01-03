@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UwUbot control panel</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.27.2/axios.min.js" integrity="sha512-odNmoc1XJy5x1TMVMdC7EMs3IVdItLPlCeL5vSUPN2llYKMJ2eByTTAIiiuqLg+GdNr9hF6z81p27DArRFKT7A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="js/app.js" defer></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="wrapper">
+        <div id="title">
+            <span id="botTag"></span> Control Panel
+            <div id="subtitle"></div>
+        </div>
+        <div id="nav">
+            <ul>
+                <button id="statusBtn"><li>status</li></button>
+                <button id="loggerBtn"><li>logger</li></button>
+                <button id="manageBtn"><li>manage</li></button>
+            </ul>
+        </div>
+        <div id="container">
+            <p>Status: <span id="botStatusInfo"></span></p>
+            <div class="statusBox" id="botStatusBox"></div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,135 @@
+body {
+    background-color: #111;
+    margin: 0;
+    padding: 0;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url(img/dark-honeycomb.png);
+}
+
+#nav {
+    height: 40px;
+    background-color: #141414;
+    margin: 0;
+    display: block;
+    padding-top: 10px;
+}
+
+#nav > ul {
+    padding-inline-start: 10px;
+    margin: 0;
+}
+
+#nav > ul > button {
+    background: none;
+    border: none;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+#nav > ul > button > li {
+    display: inline-block;
+    padding: 5px;
+    padding-right: 1em;
+    padding-left: 1em;
+    background-color: #212121;
+    margin-right: 10px;
+    border-radius: 5px;
+    font-size: 18px;
+    text-transform: capitalize;
+}
+
+#nav > ul > button > li:hover {
+    background-color: #333;
+    cursor: pointer;
+}
+
+#wrapper {
+    margin: 0 auto 0 auto;
+    width: 70%;
+    min-width: 900px;
+}
+
+#container {
+    background-color: #181818;
+    padding: 20px;
+    min-height: 750px;
+    font-size: 20px;
+}
+
+#title {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 2.2rem;
+    background-color: #141414;
+    margin: 0;
+    padding: 10px;
+    display: block;
+}
+
+#subtitle {
+    padding-top: 15px;
+    font-size: 1rem;
+}
+
+.statusBox {
+    background-color: #000;
+    min-height: 40px;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.status-ready {
+    color: #22bb22;
+}
+
+.status-not-ready {
+    color: #dd0022;
+}
+
+p {
+    margin-top: 0;
+}
+
+
+input, select {
+    outline: none;
+    color: #fff;
+    background-color: #222;
+    border: #212121 solid;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 16px;
+}
+
+input[type="text"] {
+    width: 30vh;
+}
+
+input[type="button"]:hover,
+input[type="submit"]:hover,
+input[type="checkbox"]:hover,
+select:hover {
+    background-color: #333;
+    border: #313131 solid;
+    cursor: pointer;
+}
+
+input[type="button"]:active,
+input[type="submit"]:active,
+input[type="checkbox"]:active {
+    background-color: #444;
+    border: #414141 solid;
+    cursor: pointer;
+}
+
+@media only screen and (max-width: 1200px) {
+    #wrapper {
+        width: 100%;
+        min-width: 0px;
+    }
+}
