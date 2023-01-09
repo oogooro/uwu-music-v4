@@ -59,7 +59,7 @@ export default new SlashCommand({
         interaction.reply({
             embeds: [{
                 title: 'Teraz gra',
-                description: `${songToDisplayString(song)}\n\n\`${formatTimeDisplay(queue.audioPlayer.getCurrentDuration())} / ${formatTimeDisplay(song.duration)} ${progressString}\``,
+                description: `${songToDisplayString(song)}\n\n\`${formatTimeDisplay(queue.audioPlayer.getCurrentDuration())} / ${song.formatedDuration} ${progressString}\``,
                 color: config.embedColor,
                 footer: {
                     text: songsLeft === 0 ? `To jest ostatnia piosenka na kolejce` : `${pozostalo} jeszcze ${songsLeft} ${piosenek} na kolejce`,

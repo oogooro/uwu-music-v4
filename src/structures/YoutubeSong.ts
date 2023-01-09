@@ -13,6 +13,7 @@ export class YoutubeSong extends Song {
     public thumbnail: string;
     public uploader: SongUploaderMetadata;
     public live: boolean;
+    public upcoming: boolean;
     public ageRestricted: boolean;
     public chapters: SongChapterMetadata[];
     public partial = true;
@@ -44,6 +45,10 @@ export class YoutubeSong extends Song {
             this.live = metadata.live;
             this.chapters = metadata.chapters?.map(ch => { return { startTime: ch.seconds, title: ch.title } }) ?? null;
             this.ageRestricted = metadata.discretionAdvised;
+            this.upcoming = !!metadata.upcoming;
+
+            if (metadata.live) this.formatedDuration = 'LIVE';
+            else if (metadata.upcoming) this.formatedDuration = 'UPCOMING';
             return new Promise((resolve) => resolve());
         }
 

@@ -100,6 +100,9 @@ export default new SlashCommand({
             });
             if (!videoInfo) return;
 
+            if (videoInfo.video_details.upcoming)
+                return interaction.editReply({ content: 'Nie można dodać nadchodzących piosenek!', }).catch(err => logger.error(err));
+
             const song = new YoutubeSong(videoInfo.video_details, interaction.user);
 
             queue.addSong(song, next ? 1 : 0, shuffle, skip);
@@ -196,7 +199,8 @@ export default new SlashCommand({
 
             let description = ``;
             videos.forEach((item: Video, index) => {
-                description += `${index + 1} ${hyperlink(escapeMarkdown(trimString(item.title, 55)), item.url, item.title.length >= 55 ? escapeMarkdown(item.title) : null)} - \`${item.duration ? item.duration : 'LIVE'}\`\n- ${escapeMarkdown(item.author.name)}\n\n`;
+                description += `${index + 1} ${songToDisplayString(new YoutubeSong({ duration: parseInt(item.duration), title: item.title, url: item.url }, interaction.user), true)} - \`${item.isUpcoming ? 'UPCOMING' : (item.duration ? item.duration : 'LIVE')}\`\n- ${escapeMarkdown(item.author.name)}\n\n`
+                // description += `${index + 1} ${hyperlink(escapeMarkdown(trimString(item.title, 55)), item.url, item.title.length >= 55 ? escapeMarkdown(item.title) : null)} - \`${item.isLive ? 'LIVE' : item.isUpcoming ? 'UPCOMING' : item.duration}\`\n- ${escapeMarkdown(item.author.name)}\n\n`;
             });
 
             const replyContent: InteractionEditReplyOptions = {
@@ -302,13 +306,19 @@ export default new SlashCommand({
 
             interactionResponse.awaitMessageComponent({ componentType: ComponentType.Button, filter: awaitFilter, time: 180000 /* 3min */ })
                 .then(async btnInteraction => {
-                    if (btnInteraction.customId === 'CANCEL') return interaction.deleteReply().catch(err => logger.error(err));
+                    if (btnInteraction.customId === 'CANCEL')
+                        return interaction.deleteReply().catch(err => logger.error(err));
 
                     const selectedSong = videos[parseInt(btnInteraction.customId)];
                     await btnInteraction.deferUpdate()
                         .catch(err => logger.error(err));
 
-                    const song = new YoutubeSong({ url: selectedSong.url, title: selectedSong.title, duration: formatedTimeToSeconds(selectedSong.duration) - 2 }, interaction.user);
+                    if (selectedSong.isUpcoming)
+                        return interaction.editReply({ content: 'Nie można dodać nadchodzących piosenek!', embeds: [], components: [], }).catch(err => logger.error(err));
+
+                    const song = new YoutubeSong({ url: selectedSong.url, title: selectedSong.title, duration: formatedTimeToSeconds(selectedSong.duration) }, interaction.user);
+
+                    await song.patch();
 
                     queue.addSong(song, next ? 1 : 0, shuffle, skip);
 
@@ -326,9 +336,13 @@ export default new SlashCommand({
 
                     interaction.editReply(replyContent).catch(err => logger.error(err));
                 })
-                .catch(() => {
-                    interaction.editReply({ content: 'Piosenka nie została wybrana na czas!', embeds: [], components: [], })
-                        .catch(err => logger.error(err));
+                .catch((reason) => {
+                    if (reason === 'idle')
+                        return interaction.editReply({ content: 'Piosenka nie została wybrana na czas!', embeds: [], components: [], }).catch(err => logger.error(err));
+                    else {
+                        logger.error(reason);
+                        return interaction.editReply({ content: 'Nie udało się dodać piosenki', embeds: [], components: [], }).catch(err => logger.error(err));
+                    }
                 });
             return;
 

@@ -18,10 +18,12 @@ export function songToDisplayString(song: Song, short: boolean = false): string 
     let displayString = `${hyperlink(escape(trimString(song.title, 55)), song.url, song.title.length >= 55 ? escape(song.title) : null)}`;
 
     if (short) return displayString;
-    else return `${displayString} - \`${formatTimeDisplay(song.duration)}\`\n(dodane przez <@${song.addedBy.id}>)`;
+    else return `${displayString} - \`${song.formatedDuration}\`\n(dodane przez <@${song.addedBy.id}>)`;
 }
 
 export function formatTimeDisplay(totalSeconds: number): string {
+    if (totalSeconds === -1) return '00:00';
+
     const hours = Math.floor(totalSeconds / 60 / 60);
     const minutes = Math.floor(totalSeconds / 60) % 60;
     const seconds = Math.floor(totalSeconds - minutes * 60 - hours * 3600);
@@ -38,6 +40,7 @@ export function trimString(s: string, length: number): string {
 }
 
 export function formatedTimeToSeconds(time: string): number {
+    if (!time) return -1;
     const [sec, min, hour] = time.split(':').reverse();
 
     const secs = ((parseInt(hour) * 3600) || 0) + ((parseInt(min) * 60) || 0) + (parseInt(sec));
