@@ -136,6 +136,8 @@ export class Queue {
         else this.stop();
 
         this.paused = false;
+
+        this.previousSongs.push(skipped);
         
         return skipped;
     }
