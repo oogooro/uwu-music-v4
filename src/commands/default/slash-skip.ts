@@ -28,7 +28,12 @@ export default new SlashCommand({
 
         queue.skip(num);
 
-        let content = num ? 'Pominięto piosenki!' : 'Pominięto piosenkę!';
+        let piosenek: string;
+        if (num === 1) piosenek = 'piosenkę';
+        else if (1 < num && num < 5) piosenek = 'piosenki';
+        else piosenek = 'piosenek';
+
+        let content = num ? `Pominięto **${num}** ${piosenek}!` : 'Pominięto piosenkę!';
 
         if (!queue.songs.length) content += '\n\nTo była już ostania piosenka\nKolejka jest teraz pusta!';
 

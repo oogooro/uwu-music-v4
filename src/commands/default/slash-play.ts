@@ -92,7 +92,7 @@ export default new SlashCommand({
 
         if (ytdl.validateURL(query)) {
             const videoInfo = await video_basic_info(query).catch(err => {
-                if (err.includes('Sign in to confirm your age')) interaction.editReply({ content: 'Nie można dodać piosenki z ograniczeniami wiekowymi!' }).catch(err => logger.error(err));
+                if (err instanceof Error && err.message.includes('Sign in')) interaction.editReply({ content: 'Nie można dodać piosenki z ograniczeniami wiekowymi!' }).catch(err => logger.error(err));
                 else {
                     logger.error(err);
                     interaction.editReply({ content: 'Nie udało się dostać informacji o piosence!' }).catch(err => logger.error(err));
@@ -122,6 +122,7 @@ export default new SlashCommand({
         } else if (ytpl.validateID(query)) {
             const playlistInfo = await ytpl(query, { limit: Infinity, }).catch(err => { logger.error(err) });
             if (!playlistInfo) return interaction.editReply({ content: 'Nie udało się znaleźć playlisty!' }).catch(err => logger.error(err));
+            if (!playlistInfo.items.length) return interaction.editReply({ content: 'Ta playlista jest pusta!' }).catch(err => logger.error(err));
 
             const songs: YoutubeSong[] = playlistInfo.items.map(item => new YoutubeSong({ title: item.title, duration: item.durationSec, url: item.url, }, interaction.user));
 
@@ -339,9 +340,12 @@ export default new SlashCommand({
                 .catch((reason) => {
                     if (reason === 'idle')
                         return interaction.editReply({ content: 'Piosenka nie została wybrana na czas!', embeds: [], components: [], }).catch(err => logger.error(err));
-                    else {
-                        logger.error(reason);
-                        return interaction.editReply({ content: 'Nie udało się dodać piosenki', embeds: [], components: [], }).catch(err => logger.error(err));
+                    else if (reason instanceof Error) {
+                        if (reason.message.includes('Sign in')) return interaction.editReply({ content: 'Nie można dodać piosenki z ograniczeniami wiekowymi!', embeds: [], components: [], }).catch(err => logger.error(err));
+                        else {
+                            logger.error(reason);
+                            return interaction.editReply({ content: 'Nie udało się dodać piosenki', embeds: [], components: [], }).catch(err => logger.error(err));
+                        }
                     }
                 });
             return;
