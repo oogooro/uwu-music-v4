@@ -17,6 +17,7 @@ export class YoutubeSong extends Song {
     public ageRestricted: boolean;
     public chapters: SongChapterMetadata[];
     public partial = true;
+    public id: string;
 
     constructor(metadata: SongData | YouTubeVideo, addedByUser: User) {
         let data: SongData;
@@ -46,6 +47,7 @@ export class YoutubeSong extends Song {
             this.chapters = metadata.chapters?.map(ch => { return { startTime: ch.seconds, title: ch.title } }) ?? null;
             this.ageRestricted = metadata.discretionAdvised;
             this.upcoming = !!metadata.upcoming;
+            this.id = metadata.id;
 
             if (metadata.live) this.formatedDuration = 'LIVE';
             else if (metadata.upcoming) this.formatedDuration = 'UPCOMING';

@@ -7,6 +7,9 @@ import { YoutubeSong } from './YoutubeSong';
 import { FFmpeg } from 'prism-media'; 
 import { pipeline } from 'node:stream';
 import axios from 'axios';
+import { SponsorBlock } from 'sponsorblock-api';
+
+const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
 
 export class AudioPlayerManager {
     guildId: string;
@@ -48,53 +51,59 @@ export class AudioPlayerManager {
         const connection = getVoiceConnection(this.guildId);
         const queue = queues.get(this.guildId);
 
-        queue.playing = true;
-
         if (!connection) return void logger.error(new Error('No connection'));
         if (!queue) return void logger.error(new Error('No queue'));
         if (!queue.songs.length) return void logger.error(new Error('No songs'));
         
+        queue.playing = true;
+        
         const [song, nextSong] = queue.songs;
+
         try {
-            if (song instanceof YoutubeSong && song.partial) {
-                await song.patch();
-                if (song.ageRestricted) {
+            if (song instanceof YoutubeSong && song.partial) await song.patch();
+            
+            if (nextSong && (nextSong instanceof YoutubeSong) && nextSong.partial) nextSong.patch();
+        } catch (err) {
+            if (err instanceof Error) {
+                if (song instanceof YoutubeSong && err.message.includes('Sign in')) {
                     queue.textChannel.send({
                         embeds: [{
                             title: 'Wystąpił błąd!',
-                            description: `Nie można zagrać piosenki:\n${songToDisplayString(song, true)}\nYoutube nie pozwala odtwarzać piosenek z ograniczeniami wiekowymi bez zalogowania się!\nPiosenka zostaje pominięta!`,
+                            description: `Nie można zagrać piosenki:\n${songToDisplayString(song, true)}\nYoutube nie pozwala odtwarzać piosenek z ograniczeniami wiekowymi bez zalogowania się!\n\nPiosenka zostaje pominięta!`,
                             color: 0xff0000,
                             thumbnail: {
                                 url: song.thumbnail,
                             },
                         }],
                     }).catch(err => logger.error(err));
-                    
-                    queue.skip();
-                    return;
+                } else {
+                    logger.error(err);
+        
+                    queue.textChannel.send({
+                        embeds: [{
+                            title: 'Wystąpił błąd!',
+                            description: `Nie można dostać informacji o:\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
+                            color: 0xff0000,
+                        }],
+                    }).catch(err => logger.error(err));
                 }
+                
+                queue.skip();
+                return;
             }
-            
-            if (nextSong && (nextSong instanceof YoutubeSong) && nextSong.partial) nextSong.patch();
-        } catch (err) {
-            logger.error(err);
-
-            queue.textChannel.send({
-                embeds: [{
-                    title: 'Wystąpił błąd!',
-                    description: `Nie można dostać informacji o:\n${songToDisplayString(song, true)}\nPiosenka zostaje pominięta!`,
-                    color: 0xff0000,
-                }],
-            }).catch(err => logger.error(err));
-
-            queue.skip();
-            return;
         }
 
-        this.seekOffest = seekTime ?? 0;
-
+        
         if (song instanceof YoutubeSong) {
-            stream(song.url, { seek: seekTime, quality: 2 })
+            if (!seekTime) {
+                try {
+                    const segments = await sponsorBlock.getSegments(song.id, ['music_offtopic']);
+                    seekTime = segments.find(s => s.startTime === 0).endTime ?? 0;
+                } catch (err) {}
+            }
+            
+            this.seekOffest = seekTime ?? 0;
+            stream(song.url, { seek: this.seekOffest, quality: 2 })
                 .then(ytStream => {
                     const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type });
                     this.currentResource = resource;
@@ -133,7 +142,7 @@ export class AudioPlayerManager {
                 queue.textChannel.send({
                     embeds: [{
                         title: 'Wystąpił błąd!',
-                        description: `Nie udało się zagrać:\n${songToDisplayString(song, true)}\nPiosenka zostaje pominięta!`,
+                        description: `Nie udało się zagrać:\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
                         color: 0xff0000,
                     }],
                 }).catch(err => logger.error(err));
