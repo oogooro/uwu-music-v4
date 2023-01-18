@@ -23,7 +23,7 @@ export class Queue {
         this.guild = guild;
         this.textChannel = channel;
 
-        logger.debug(`Created new queue for ${guild.id}`);
+        logger.debug(`[QUEUE] Created new queue for ${guild.id}`);
 
         queues.set(guild.id, this);
     }
@@ -46,11 +46,11 @@ export class Queue {
 
                 try {
                     await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
-                    logger.debug(`Successfully connected to ${channel.guildId}`);
+                    logger.debug(`[CONNECTION] Successfully connected to ${channel.guildId}`);
                     this.connected = true;
                     resolve();
                 } catch (err) {
-                    logger.debug(`Failed to connect to ${channel.guildId}`);
+                    logger.debug(`[CONNECTION] Failed to connect to ${channel.guildId}`);
                     reject(err);
                 }
             }
@@ -60,7 +60,7 @@ export class Queue {
             });
 
             connection.on(VoiceConnectionStatus.Destroyed, () => {
-                logger.debug(`Connection destroyed for ${this.guild.id}`);
+                logger.debug(`[CONNECTION] Connection destroyed for ${this.guild.id}`);
                 queues.delete(this.guild.id);
             });
 
@@ -71,8 +71,8 @@ export class Queue {
                         entersState(connection, VoiceConnectionStatus.Connecting, 2_500),
                     ]);
                 } catch (error) {
-                    logger.debug(`Lost connection for ${this.guild.id}`);
-                    connection.destroy();
+                    logger.debug(`[CONNECTION] Lost connection for ${this.guild.id}`);
+                    if (connection.state.status !== VoiceConnectionStatus.Destroyed) connection.destroy();
                     queues.delete(this.guild.id);
                 }
             });
@@ -172,10 +172,16 @@ export class Queue {
         this.paused = false;
     }
 
-    public byebye(): void{
+    public byebye(): void {
         const connection = getVoiceConnection(this.guild.id);
 
         connection?.destroy();
+        this.audioPlayer.player.removeAllListeners();
         queues.delete(this.guild.id);
+        logger.debug(`[QUEUE] Said byebye to ${this.guild.id}`);
+    }
+
+    public get voiceChannel(): VoiceBasedChannel {
+        return this.guild.members.me.voice.channel;
     }
 }
