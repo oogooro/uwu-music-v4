@@ -1,5 +1,6 @@
-import { entersState, joinVoiceChannel, VoiceConnectionStatus } from '@discordjs/voice';
 import { ApplicationCommandOptionType, ChannelType, GuildMember, VoiceChannel } from 'discord.js';
+import { queues } from '../..';
+import { Queue } from '../../structures/Queue';
 import { SlashCommand } from '../../structures/SlashCommand';
 
 export default new SlashCommand({
@@ -27,14 +28,17 @@ export default new SlashCommand({
 
         await interaction.deferReply({ ephemeral: true }).catch(err => logger.error(err));
 
-        const connection = joinVoiceChannel({
-            channelId: channel.id,
-            guildId: channel.guild.id,
-            adapterCreator: channel.guild.voiceAdapterCreator,
-        });
+        const queue = queues.has(interaction.guildId) ? queues.get(interaction.guildId) : new Queue(interaction.guild, interaction.channel);
 
-        entersState(connection, VoiceConnectionStatus.Ready, 10_000)
-            .then(() => interaction.editReply({ content: 'Połączono z chatem głosowym' }).catch(err => logger.error(err)))
-            .catch(() => interaction.editReply({ content: 'Nie udało się połączyć z chatem głosowym' }).catch(err => logger.error(err)))
+        if (!queue.connected) {
+            try {
+                await queue.connect(channel);
+            } catch (err) {
+                logger.error(err);
+                return interaction.editReply({ content: 'Nie udało się połączyć z kanałem głosowym!' }).catch(err => logger.error(err));
+            }
+        }
+        
+        interaction.editReply({ content: `Połączono z ${channel}`, }).catch(err => logger.error(err));
     },
 });
