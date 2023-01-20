@@ -22,7 +22,7 @@ export default new SlashCommand({
 
         const update = (btnInteraction?: ButtonInteraction) => {
             const queue = queues.get(interaction.guildId);
-            if (!queue || !queue?.songs[0]) {
+            if (!queue) {
                 if (btnInteraction)
                     return btnInteraction.update({ content: 'Kolejka już nie istnieje!', components: [], embeds: [], }).catch(err => logger.error(err));
                 else return;
@@ -36,7 +36,9 @@ export default new SlashCommand({
             if (page === -1) page = pages - 1;
             else if (page > pages) page = 0;
 
-            const currentSong = `Teraz gra:\n${songToDisplayString(songs.shift())}\n\n`;
+            const queueEmpty = !songs[0];
+
+            const currentSong = queueEmpty ? 'Kolejka jest pusta' : `Teraz gra:\n${songToDisplayString(songs.shift())}\n\n`;
             const songsSliced = songs.slice((page * SONGS_PER_PAGE), (page * SONGS_PER_PAGE) + SONGS_PER_PAGE);
 
             const songsStringArr = songsSliced.map((song, index) => `${(index + (page * SONGS_PER_PAGE) + 1)}. ${songToDisplayString(song)}`);
@@ -80,7 +82,7 @@ export default new SlashCommand({
                         description: `${page === 0 ? currentSong : ''}${songsStringArr.join('\n\n')}`,
                         color: config.embedColor,
                         footer: {
-                            text: `Na kolejce ${znajduje} się ${songsLeft} ${piosenek}`,
+                            text: queueEmpty ? null : `Na kolejce ${znajduje} się ${songsLeft} ${piosenek}`,
                         },
                     },
                 ],
