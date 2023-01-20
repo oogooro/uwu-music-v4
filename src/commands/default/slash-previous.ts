@@ -10,6 +10,7 @@ export default new SlashCommand({
     data: {
         name: 'previous',
         description: 'Gra poprzednią piosenkę',
+        dmPermission: false,
     },
     vcOnly: true,
     queueRequired: true,
