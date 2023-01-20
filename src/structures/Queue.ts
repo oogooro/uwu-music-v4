@@ -116,17 +116,17 @@ export class Queue {
         this.audioPlayer.play(seekTime);
     }
 
-    public skip(to?: number): Song {
+    public skip(to?: number, force: boolean = false): Song {
         let skipped: Song = null;
 
         if (!this.songs.length) return void logger.error(new Error('Queue is empty'));
 
         if (!to) {
             skipped = this.songs.shift();
-            if (this.repeatMode === RepeatMode.Queue) this.songs.push(skipped);
+            if (!force && (this.repeatMode === RepeatMode.Queue)) this.songs.push(skipped);
         } else {
             const skippedSongs = this.songs.splice(0, to);
-            if (this.repeatMode === RepeatMode.Queue) this.songs.push(...skippedSongs);
+            if (!force && (this.repeatMode === RepeatMode.Queue)) this.songs.push(...skippedSongs);
             [skipped] = this.songs;
         }
 

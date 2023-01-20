@@ -62,7 +62,7 @@ export class AudioPlayerManager {
         try {
             if (song instanceof YoutubeSong && song.partial) await song.patch();
             
-            if (nextSong && (nextSong instanceof YoutubeSong) && nextSong.partial) nextSong.patch();
+            if (nextSong && (nextSong instanceof YoutubeSong) && nextSong.partial) nextSong.patch().catch(() => {/* it will throw the next time */});
         } catch (err) {
             if (err instanceof Error) {
                 if (song instanceof YoutubeSong && err.message.includes('Sign in')) {
@@ -88,7 +88,7 @@ export class AudioPlayerManager {
                     }).catch(err => logger.error(err));
                 }
                 
-                queue.skip();
+                queue.skip(null, true);
                 return;
             }
         }
@@ -147,7 +147,7 @@ export class AudioPlayerManager {
                     }],
                 }).catch(err => logger.error(err));
 
-                queue.skip();
+                queue.skip(null, true);
                 return;
             }
         }
