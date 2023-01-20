@@ -2,6 +2,7 @@ import { ApplicationCommandOptionType } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
 import config from '../../config';
 import { songToDisplayString } from '../../utils';
+import { YoutubeSong } from '../../structures/YoutubeSong';
 
 export default new SlashCommand({
     data: {
@@ -31,11 +32,19 @@ export default new SlashCommand({
 
         queue.recalculateDuration();
 
-        interaction.reply({
+        if (song instanceof YoutubeSong && song.partial) await song.patch().catch(err => logger.error(err));
+
+        const interactionResponse = await interaction.deferReply().catch(err => { logger.error(err) });
+        if (!interactionResponse) return;
+
+        interaction.editReply({
             embeds: [{
                 title: 'Usunięto',
+                thumbnail: {
+                    url: song instanceof YoutubeSong ? song.thumbnail : null,
+                },
                 description: songToDisplayString(song),
-                color: config.embedColor
+                color: config.embedColor,
             }]
         }).catch(err => logger.error(err));
     },
