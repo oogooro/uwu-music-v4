@@ -90,9 +90,9 @@ export default new SlashCommand({
         if (!song.chapters) return interaction.respond([]);
         const focused = interaction.options.getFocused().trim();
 
-        if (!focused) return interaction.respond(song.chapters.slice(0, 24).map(ch => { return { name: `${trimString(ch.title, 80)} - ${formatTimeDisplay(ch.startTime)}`, value: ch.startTime.toString() } } ));
+        if (!focused) return interaction.respond(song.chapters.slice(0, 25).map(ch => { return { name: `${trimString(ch.title, 80)} - ${formatTimeDisplay(ch.startTime)}`, value: ch.startTime.toString() } } ));
 
         const filtered = song.chapters.filter(ch => ch.title.toLowerCase().includes(focused.toLocaleLowerCase()) );
-        interaction.respond(filtered.slice(0, 24).map(ch => { return { name: `${trimString(ch.title, 80)} - ${formatTimeDisplay(ch.startTime)}`, value: ch.startTime.toString() } }));
+        interaction.respond(filtered.slice(0, 25).map(ch => { return { name: `${trimString(ch.title, 80)} - ${formatTimeDisplay(ch.startTime)}`, value: ch.startTime.toString() } }));
     },
 }); 
