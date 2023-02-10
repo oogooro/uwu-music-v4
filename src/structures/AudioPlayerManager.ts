@@ -1,6 +1,6 @@
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, demuxProbe, getVoiceConnection, StreamType } from '@discordjs/voice';
+import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, getVoiceConnection, StreamType } from '@discordjs/voice';
 import { stream } from 'play-dl';
-import { logger, queues } from '..';
+import { logger, queues, soundcloud } from '..';
 import { RepeatMode } from '../typings/repeatMode';
 import { songToDisplayString } from '../utils';
 import { YoutubeSong } from './YoutubeSong';
@@ -8,6 +8,7 @@ import { FFmpeg } from 'prism-media';
 import { pipeline } from 'node:stream';
 import axios from 'axios';
 import { SponsorBlock } from 'sponsorblock-api';
+import { SoundcloudSong } from './SoundcoludSong';
 
 const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
 
@@ -27,7 +28,7 @@ export class AudioPlayerManager {
             logger.debug(`[PLAYER] ${guildId} ${oldState.status} => ${newState.status}`);
             if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
                 const queue = queues.get(this.guildId);
-                
+
                 if (queue.repeatMode === RepeatMode.Disabled) queue.previousSongs.push(queue.songs.shift());
                 else if (queue.repeatMode === RepeatMode.Queue) queue.songs.push(queue.songs.shift());
 
@@ -54,9 +55,9 @@ export class AudioPlayerManager {
         if (!connection) return void logger.error(new Error('No connection'));
         if (!queue) return void logger.error(new Error('No queue'));
         if (!queue.songs.length) return void logger.error(new Error('No songs'));
-        
+
         queue.playing = true;
-        
+
         const [song, nextSong] = queue.songs;
 
         try {
@@ -69,7 +70,7 @@ export class AudioPlayerManager {
                     queue.textChannel.send({
                         embeds: [{
                             title: 'Wystąpił błąd!',
-                            description: `Nie można zagrać piosenki:\n${songToDisplayString(song, true)}\nYoutube nie pozwala odtwarzać piosenek z ograniczeniami wiekowymi bez zalogowania się!\n\nPiosenka zostaje pominięta!`,
+                            description: `Nie można zagrać piosenki:\n\n${songToDisplayString(song, true)}\nYoutube nie pozwala odtwarzać piosenek z ograniczeniami wiekowymi bez zalogowania się!\n\nPiosenka zostaje pominięta!`,
                             color: 0xff0000,
                             thumbnail: {
                                 url: song.thumbnail,
@@ -82,7 +83,7 @@ export class AudioPlayerManager {
                     queue.textChannel.send({
                         embeds: [{
                             title: 'Wystąpił błąd!',
-                            description: `Nie można dostać informacji o:\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
+                            description: `Nie można dostać informacji o:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
                             color: 0xff0000,
                         }],
                     }).catch(err => logger.error(err));
@@ -93,7 +94,6 @@ export class AudioPlayerManager {
             }
         }
 
-        
         if (song instanceof YoutubeSong) {
             if (!seekTime) {
                 try {
@@ -113,7 +113,46 @@ export class AudioPlayerManager {
                     connection.subscribe(this.player);
                 })
                 .catch(err => logger.error(err));
-        } else {
+        } else if (song instanceof SoundcloudSong) {
+            this.seekOffest = seekTime ?? 0;
+
+            try {
+                const transcoder = new FFmpeg({
+                    args: [
+                        '-analyzeduration', '0',
+                        '-loglevel', '0',
+                        '-ar', '48000',
+                        '-ac', '2',
+                        '-f', 's16le',
+                        '-ss', this.seekOffest.toString(),
+                    ],
+                });
+
+                soundcloud.util.streamTrack(song.url).then(stream => {
+                    const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, });
+                    this.currentResource = resource;
+
+                    this.player.play(resource);
+
+                    connection.subscribe(this.player);
+                })
+                .catch(err => logger.error(err));
+            } catch (err) {
+                queue.textChannel.send({
+                    embeds: [{
+                        title: 'Wystąpił błąd!',
+                        description: `Nie udało się zagrać:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
+                        color: 0xff0000,
+                    }],
+                }).catch(err => logger.error(err));
+
+                logger.error(err);
+
+                queue.skip(null, true);
+                return;
+            }
+        }
+        else {
             try {
                 const transcoder = new FFmpeg({
                     args: [
@@ -142,10 +181,12 @@ export class AudioPlayerManager {
                 queue.textChannel.send({
                     embeds: [{
                         title: 'Wystąpił błąd!',
-                        description: `Nie udało się zagrać:\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
+                        description: `Nie udało się zagrać:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
                         color: 0xff0000,
                     }],
                 }).catch(err => logger.error(err));
+
+                logger.error(err);
 
                 queue.skip(null, true);
                 return;

@@ -2,6 +2,7 @@ import { SlashCommand } from '../../structures/SlashCommand';
 import config from '../../config';
 import { formatTimeDisplay, songToDisplayString } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
+import { SoundcloudSong } from '../../structures/SoundcoludSong';
 
 export default new SlashCommand({
     data: {
@@ -56,16 +57,22 @@ export default new SlashCommand({
             piosenek = 'piosenek';
         }
 
-        interaction.reply({
+        const interactionResponse = await interaction.deferReply().catch(err => { logger.error(err) });
+        if (!interactionResponse) return;
+
+        if (song instanceof YoutubeSong && song.partial) await song.patch().catch(err => logger.error(err));
+        else if (song instanceof SoundcloudSong && song.partial) await song.patch().catch(err => logger.error(err));
+
+        interaction.editReply({
             embeds: [{
                 title: 'Teraz gra',
                 description: `${songToDisplayString(song)}\n\n\`${formatTimeDisplay(queue.audioPlayer.getCurrentDuration())} / ${song.formatedDuration} ${progressString}\``,
+                thumbnail: {
+                    url: (song instanceof YoutubeSong || song instanceof SoundcloudSong ? song.thumbnail : null),
+                },
                 color: config.embedColor,
                 footer: {
                     text: songsLeft === 0 ? `To jest ostatnia piosenka na kolejce` : `${pozostalo} jeszcze ${songsLeft} ${piosenek} na kolejce`,
-                },
-                thumbnail: {
-                    url: (song instanceof YoutubeSong && !song.partial ? song.thumbnail : null),
                 },
             }],
         }).catch(err => logger.error(err));

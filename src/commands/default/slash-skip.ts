@@ -1,5 +1,7 @@
 import { ApplicationCommandOptionType } from 'discord.js';
+import { queues } from '../..';
 import { SlashCommand } from '../../structures/SlashCommand';
+import { trimString } from '../../utils';
 
 export default new SlashCommand({
     data: {
@@ -7,10 +9,10 @@ export default new SlashCommand({
         description: 'Pomija piosenki',
         options: [
             {
-                type: ApplicationCommandOptionType.Integer,
-                name: 'do',
-                description: 'Numer do jakiej piosenki pominąć',
-                minValue: 1,
+                type: ApplicationCommandOptionType.String,
+                name: 'piosenka',
+                description: 'Piosenka do jakiej pominąć',
+                autocomplete: true,
             },
         ],
         dmPermission: false,
@@ -18,13 +20,10 @@ export default new SlashCommand({
     vcOnly: true,
     queueRequired: true,
     run: async ({ interaction, logger, queue, }) => {
-        const num = interaction.options.getInteger('do');
+        const num = interaction.options.getString('piosenka') ? queue.songs.findIndex(s => s.title === interaction.options.getString('piosenka')) : 1;
 
-        if (!queue.songs.length) 
-            return interaction.reply({ content: 'Na kolejce nie ma piosenek!', ephemeral: true, }).catch(err => logger.error(err));
-
-        if (num && !queue.songs[num])
-            return interaction.reply({ content: 'Nie udało się pominąć, bo podany numer piosenki nie istnieje', ephemeral: true, }).catch(err => logger.error(err));
+        if (num === 0) return interaction.reply({ content: 'Nie można pominąć do piosenki, która aktualnie gra!', ephemeral: true, }).catch(err => logger.error(err));
+        if (num === -1) return interaction.reply({ content: 'Nie udało się znaleźć piosenki!', ephemeral: true, }).catch(err => logger.error(err));
 
         queue.skip(num);
 
@@ -38,5 +37,16 @@ export default new SlashCommand({
         if (!queue.songs.length) content += '\n\nTo była już ostania piosenka\nKolejka jest teraz pusta!';
 
         interaction.reply({ content, }).catch(err => logger.error(err));
+    },
+    getAutocompletes: async ({ interaction, logger }) => {
+        const queue = queues.get(interaction.guildId);
+        if (!queue || !queue.songs[0]) return interaction.respond([]);
+
+        const focused = interaction.options.getFocused().trim();
+
+        if (!focused) return interaction.respond(queue.songs.slice(1).slice(0, 25).map(song => { return { name: `${trimString(song.title, 80)}`, value: song.title } }));
+
+        const filtered = queue.songs.slice(1).filter(song => song.title.toLowerCase().includes(focused.toLocaleLowerCase()));
+        interaction.respond(filtered.slice(0, 25).map(song => { return { name: `${trimString(song.title, 80)}`, value: song.title } }));
     },
 });

@@ -2,9 +2,10 @@ import { InteractionEditReplyOptions, InteractionReplyOptions } from 'discord.js
 import config from '../../config';
 import { SlashCommand } from '../../structures/SlashCommand';
 import { Song } from '../../structures/Song';
+import { SoundcloudSong } from '../../structures/SoundcoludSong';
 import { YoutubeSong } from '../../structures/YoutubeSong';
 import { RepeatMode } from '../../typings/repeatMode';
-import { songToDisplayString } from '../../utils';
+import { createSongEmbed, songToDisplayString } from '../../utils';
 
 export default new SlashCommand({
     data: {
@@ -34,16 +35,10 @@ export default new SlashCommand({
         queue.audioPlayer.play();
 
         if (song instanceof YoutubeSong && song.partial) await song.patch().catch(err => logger.error(err));
+        else if (song instanceof SoundcloudSong && song.partial) await song.patch().catch(err => logger.error(err));
 
         const replyContent: InteractionEditReplyOptions = {
-            embeds: [{
-                title: 'Powrócono do',
-                thumbnail: {
-                    url: song instanceof YoutubeSong ? song.thumbnail : null,
-                },
-                description: songToDisplayString(song),
-                color: config.embedColor,
-            }],
+            embeds: createSongEmbed('Powrócono do', song),
         }
 
         interaction.editReply(replyContent).catch(err => logger.error(err));

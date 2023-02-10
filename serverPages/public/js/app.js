@@ -70,7 +70,7 @@ const pageFunctions = {
         function updateLogger() {
         }
         updateLogger();
-        socket.on('messageLogged', updateLogger);
+        socket.on('logger', updateLogger);
     },
     manage: () => {
         const btnRegisterGuild = document.getElementById('btnRegisterGuild');
@@ -132,7 +132,8 @@ const pageContents = {
 <div class="statusBox" id="botStatusBox"></div>
 `,
     logger: `
-<h1>chuj</h1>
+<p>Logger:</p>
+<div class="statusBox" id="botStatusBox"></div>
 `,
     manage: `
     <p class="bold">Przyciski:</p>

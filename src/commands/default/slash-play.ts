@@ -1,9 +1,9 @@
 import { ApplicationCommandOptionType, ButtonInteraction, ButtonStyle, ComponentType, escapeMarkdown, GuildMember, hyperlink, InteractionEditReplyOptions } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
-import { betaServers, queues } from '../..';
+import { betaServers, queues, soundcloud } from '../..';
 import { Queue } from '../../structures/Queue';
 import config from '../../config';
-import { formatedTimeToSeconds, songToDisplayString, trimString } from '../../utils';
+import { createSongEmbed, formatedTimeToSeconds, songToDisplayString, trimString } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
 import ytdl from 'ytdl-core';
 import ytpl from 'ytpl';
@@ -12,6 +12,7 @@ import ytsr, { Result, Video } from 'ytsr';
 import axios from 'axios';
 import { parseStream } from 'music-metadata';
 import { Song } from '../../structures/Song';
+import { SoundcloudSong } from '../../structures/SoundcoludSong';
 
 export default new SlashCommand({
     data: {
@@ -108,14 +109,7 @@ export default new SlashCommand({
             queue.addSong(song, next ? 1 : 0, shuffle, skip);
 
             const replyContent: InteractionEditReplyOptions = {
-                embeds: [{
-                    title: 'Dodano',
-                    thumbnail: {
-                        url: song.thumbnail,
-                    },
-                    description: songToDisplayString(song) + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
-                    color: config.embedColor,
-                }],
+                embeds: createSongEmbed('Dodano', song, additionalInfo),
             }
 
             interaction.editReply(replyContent).catch(err => logger.error(err));
@@ -140,7 +134,44 @@ export default new SlashCommand({
             }
 
             interaction.editReply(replyContent).catch(err => logger.error(err));
-        } else if (query.startsWith('https://') || query.startsWith('http://')) {
+        } else if (query.startsWith('https://soundcloud.com/')) {
+            if (query.startsWith('https://soundcloud.com/playlist') || query.match(/https:\/\/soundcloud\.com\/\S*sets\/\S*/g)) { // dalej kurwa nienawidzę regexów
+                const playlistInfo = await soundcloud.playlists.getV2(query).catch(err => { logger.error(err) });
+                if (!playlistInfo) return interaction.editReply({ content: 'Nie udało się znaleźć playlisty!' }).catch(err => logger.error(err));
+
+                if (!playlistInfo.tracks.length) return interaction.editReply({ content: 'Ta playlista jest pusta!' }).catch(err => logger.error(err));
+
+                const songs: SoundcloudSong[] = playlistInfo.tracks.map(track => new SoundcloudSong(track, interaction.user));
+
+                queue.addList(songs, next ? 1 : 0, shuffle, skip);
+
+                const replyContent: InteractionEditReplyOptions = {
+                    embeds: [{
+                        title: 'Dodano',
+                        color: config.embedColor,
+                        description: `${playlistInfo.tracks.length} piosenek z ${hyperlink(playlistInfo.title, playlistInfo.permalink_url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
+                        thumbnail: {
+                            url: playlistInfo.artwork_url ?? playlistInfo.tracks.find(track => track.artwork_url).artwork_url,
+                        },
+                    }],
+                }
+
+                interaction.editReply(replyContent).catch(err => logger.error(err));
+            } else {
+                const songInfo = await soundcloud.tracks.getV2(query).catch(err => { logger.error(err) });
+                if (!songInfo) return interaction.editReply({ content: 'Nie udało się znaleźć piosenki!' }).catch(err => logger.error(err));
+                const song = new SoundcloudSong(songInfo, interaction.user);
+    
+                queue.addSong(song, next ? 1 : 0, shuffle, skip);
+    
+                const replyContent: InteractionEditReplyOptions = {
+                    embeds: createSongEmbed('Dodano', song, additionalInfo),
+                }
+    
+                interaction.editReply(replyContent).catch(err => logger.error(err));
+            }
+        }
+        else if (query.startsWith('https://') || query.startsWith('http://')) {
             if (!betaServers.has(interaction.guildId)) return interaction.editReply({ content: 'Granie z zewnętrznych liknów jeszcze nie okodowane!' }).catch(err => logger.error(err));
             if (!query.endsWith('.mp3')) return interaction.editReply({ content: 'Można dodwawać tylko pliki .mp3!' }).catch(err => logger.error(err));
 
@@ -201,7 +232,6 @@ export default new SlashCommand({
             let description = ``;
             videos.forEach((item: Video, index) => {
                 description += `${index + 1} ${songToDisplayString(new YoutubeSong({ duration: parseInt(item.duration), title: item.title, url: item.url }, interaction.user), true)} - \`${item.isUpcoming ? 'UPCOMING' : (item.duration ? item.duration : 'LIVE')}\`\n- ${escapeMarkdown(item.author.name)}\n\n`
-                // description += `${index + 1} ${hyperlink(escapeMarkdown(trimString(item.title, 55)), item.url, item.title.length >= 55 ? escapeMarkdown(item.title) : null)} - \`${item.isLive ? 'LIVE' : item.isUpcoming ? 'UPCOMING' : item.duration}\`\n- ${escapeMarkdown(item.author.name)}\n\n`;
             });
 
             const replyContent: InteractionEditReplyOptions = {
@@ -324,14 +354,7 @@ export default new SlashCommand({
                     queue.addSong(song, next ? 1 : 0, shuffle, skip);
 
                     const replyContent: InteractionEditReplyOptions = {
-                        embeds: [{
-                            title: 'Dodano',
-                            description: songToDisplayString(song) + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
-                            color: config.embedColor,
-                            thumbnail: {
-                                url: selectedSong.bestThumbnail.url,
-                            },
-                        }],
+                        embeds: createSongEmbed('Dodano', song, additionalInfo),
                         components: [],
                     }
 

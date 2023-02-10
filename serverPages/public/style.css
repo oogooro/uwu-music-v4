@@ -74,9 +74,11 @@ body {
 
 .statusBox {
     background-color: #000;
-    min-height: 40px;
+    min-height: 180px;
     border-radius: 5px;
     padding: 10px;
+    overflow: auto;
+    max-height: 320px;
 }
 
 .bold {

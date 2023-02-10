@@ -3,7 +3,7 @@ import { LoggerOptions } from 'log4uwu';
 import moment from 'moment';
 import { botSettingsDB } from './database/botSettings';
 
-interface Config {
+type Config = {
     clientOptions: ClientOptions;
     loggerOptions: LoggerOptions;
     debugLoggerOptions: LoggerOptions;

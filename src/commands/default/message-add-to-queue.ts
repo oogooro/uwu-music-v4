@@ -9,6 +9,7 @@ import { songToDisplayString } from '../../utils';
 import { validateURL } from 'ytdl-core';
 import ytpl, { validateID } from 'ytpl';
 
+// const linkRe = /(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/[^)\s]+|https:\/\/soundcloud\.com\/\S*[^)\s]/g;
 const ytLinkRe = /(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/[^)\s]+/g;
 
 export default new MessageCommand({
@@ -29,7 +30,7 @@ export default new MessageCommand({
         if (!matched) matched = interaction.targetMessage.embeds[0]?.url?.match(ytLinkRe);
         if (!matched) matched = interaction.targetMessage.embeds[0]?.description?.match(ytLinkRe);
 
-        if (!matched) return interaction.reply({ content: 'W tej wiadomości nie ma linków do YouTube', ephemeral: true, })
+        if (!matched) return interaction.editReply({ content: 'W tej wiadomości nie ma linków do YouTube' })
             .catch(err => logger.error(err));
 
         const [songUrl] = matched;

@@ -1,5 +1,8 @@
-import { CommandInteraction, escapeMarkdown, hyperlink, Interaction, InteractionType } from 'discord.js';
+import { APIEmbed, CommandInteraction, escapeMarkdown, hyperlink, Interaction, InteractionType } from 'discord.js';
+import config from './config';
 import { Song } from './structures/Song';
+import { SoundcloudSong } from './structures/SoundcoludSong';
+import { YoutubeSong } from './structures/YoutubeSong';
 
 let customIdIncrement = 0;
 export function generateCustomId(text: string, interaction: CommandInteraction): string {
@@ -53,4 +56,17 @@ export function escape(s: string): string {
     return escapeMarkdown(s)
         .replaceAll('[', '［')
         .replaceAll(']', '］');
+}
+
+export function createSongEmbed(title: string, song: Song, additionalInfo?: string[]): APIEmbed[] {
+    const embed: APIEmbed[] = [{
+        title: title,
+        thumbnail: {
+            url: song instanceof YoutubeSong || song instanceof SoundcloudSong ? song.thumbnail : null,
+        },
+        description: songToDisplayString(song) + (additionalInfo?.length ? '\n\n' + additionalInfo.join('\n') : ''),
+        color: config.embedColor,
+    }]
+
+    return embed;
 }

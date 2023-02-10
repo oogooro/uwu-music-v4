@@ -6,14 +6,14 @@ dotenv.config();
 import Logger from 'log4uwu';
 import './server/server';
 import { Queue } from './structures/Queue';
-import { VoiceConnection } from '@discordjs/voice';
+import Soundcloud from 'soundcloud.ts';
 
 export const logger = new Logger(config.loggerOptions);
 export const client = new ExtendedClient(config.clientOptions);
 export const debugLogger = new Logger(config.debugLoggerOptions);
-export const queues: Collection<string, Queue> = new Collection();
-export const connections: Collection<string, VoiceConnection> = new Collection();
+export const soundcloud = new Soundcloud();
 
+export const queues: Collection<string, Queue> = new Collection();
 export const betaServers: Set<string> = new Set();
 
 if (!process.env.ENV) {
