@@ -20,6 +20,8 @@ export default new SlashCommand({
     vcOnly: true,
     queueRequired: true,
     run: async ({ interaction, logger, queue, }) => {
+        if (!queue.songs.length) return interaction.reply({ content: 'Kolejka jest pusta!', ephemeral: true, }).catch(err => logger.error(err));
+
         const num = interaction.options.getString('piosenka') ? queue.songs.findIndex(s => s.title === interaction.options.getString('piosenka')) : 1;
 
         if (num === 0) return interaction.reply({ content: 'Nie można pominąć do piosenki, która aktualnie gra!', ephemeral: true, }).catch(err => logger.error(err));
@@ -32,7 +34,7 @@ export default new SlashCommand({
         else if (1 < num && num < 5) piosenek = 'piosenki';
         else piosenek = 'piosenek';
 
-        let content = num ? `Pominięto **${num}** ${piosenek}!` : 'Pominięto piosenkę!';
+        let content = `Pominięto **${num}** ${piosenek}!`;
 
         if (!queue.songs.length) content += '\n\nTo była już ostania piosenka\nKolejka jest teraz pusta!';
 
