@@ -25,7 +25,7 @@ export class YoutubeSong extends Song {
             data = {
                 title: metadata.title,
                 url: metadata.url,
-                duration: metadata.durationInSec - 2,
+                duration: metadata.durationInSec,
             }
         } else data = metadata;
 
@@ -48,6 +48,7 @@ export class YoutubeSong extends Song {
             this.ageRestricted = metadata.discretionAdvised;
             this.upcoming = !!metadata.upcoming;
             this.id = metadata.id;
+            this.duration = metadata.durationInSec;
 
             if (metadata.live) this.formatedDuration = 'LIVE';
             else if (metadata.upcoming) this.formatedDuration = 'UPCOMING';
