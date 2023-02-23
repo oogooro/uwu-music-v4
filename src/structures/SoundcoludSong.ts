@@ -12,6 +12,7 @@ export class SoundcloudSong extends Song {
     public thumbnail: string;
     public id: string;
     public partial: boolean = true;
+    public uploader: string;
 
     constructor(metadata: SongData | SoundcloudTrackV2, addedByUser: User) {
         let data: SongData;
@@ -34,6 +35,7 @@ export class SoundcloudSong extends Song {
             this.partial = false;
 
             this.thumbnail = metadata.artwork_url;
+            this.uploader = metadata.user.username;
 
             return new Promise((resolve) => resolve());
         }

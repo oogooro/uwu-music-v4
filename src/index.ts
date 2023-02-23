@@ -8,6 +8,8 @@ import './server/server';
 import { Queue } from './structures/Queue';
 import Soundcloud from 'soundcloud.ts';
 
+Error.stackTraceLimit = 20;
+
 export const logger = new Logger(config.loggerOptions);
 export const client = new ExtendedClient(config.clientOptions);
 export const debugLogger = new Logger(config.debugLoggerOptions);

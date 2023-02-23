@@ -3,7 +3,7 @@ import { SlashCommand } from '../../structures/SlashCommand';
 import { betaServers, queues, soundcloud } from '../..';
 import { Queue } from '../../structures/Queue';
 import config from '../../config';
-import { createSongEmbed, formatedTimeToSeconds, songToDisplayString, trimString } from '../../utils';
+import { createSongEmbed, formatedTimeToSeconds, searchSongs, songToDisplayString, trimString } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
 import ytdl from 'ytdl-core';
 import ytpl from 'ytpl';
@@ -209,170 +209,181 @@ export default new SlashCommand({
                 interaction.editReply({ content: 'Nie można zagrać tej piosenki!' }).catch(err => logger.error(err));
             }
         } else {
-            const SEARCH_EMBED_ENTRIES_LENGTH = 10;
+            let searchPlatform: 'yt' | 'sc' = 'yt';
+            let songs: Song[] = [];
 
-            let searchVideoResults: Result;
+            const searchResults = await searchSongs(query, interaction.user).catch(err => { logger.error(err) });
+            if (!searchResults)
+                return interaction.editReply({ content: 'Nie udało się znaleźć piosenek!' }).catch(err => logger.error(err));
 
-            try {
-                const filters = await ytsr.getFilters(query);
-                const filterVideos = filters.get('Type').get('Video');
+            const update = (btnInteraction?: ButtonInteraction) => {
+                const int = btnInteraction || interaction;
+                let description: string;
 
-                searchVideoResults = await ytsr(filterVideos.url, { limit: Math.floor(SEARCH_EMBED_ENTRIES_LENGTH * 1.5), });
-            } catch (err) {
-                logger.error(err);
-                return interaction.editReply({ content: 'Coś poszło nie tak i nie udało się wyszukać piosenek!', })
-                    .catch(err => logger.error(err));
+                if (searchPlatform === 'yt') {
+                    songs = searchResults.songsYT;
+                    description = searchResults.embedYT;
+                } else {
+                    songs = searchResults.songsSC;
+                    description = searchResults.embedSC; 
+                }
+
+                const replyContent: InteractionEditReplyOptions = {
+                    embeds: [{
+                        title: `Wyniki wyszukiwania dla: ${query} z ${searchPlatform === 'yt' ? 'YouTube' : 'SoundCloud'}`,
+                        color: config.embedColor,
+                        description,
+                    }],
+                    components: [
+                        {
+                            type: ComponentType.ActionRow,
+                            components: [
+                                {
+                                    type: ComponentType.Button,
+                                    label: '1',
+                                    customId: '0',
+                                    style: ButtonStyle.Secondary
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: '2',
+                                    customId: '1',
+                                    style: ButtonStyle.Secondary
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: '3',
+                                    customId: '2',
+                                    style: ButtonStyle.Secondary
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: '4',
+                                    customId: '3',
+                                    style: ButtonStyle.Secondary
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: '5',
+                                    customId: '4',
+                                    style: ButtonStyle.Secondary
+                                },
+                            ],
+                        },
+                        {
+                            type: ComponentType.ActionRow,
+                            components: [
+                                {
+                                    type: ComponentType.Button,
+                                    label: '6',
+                                    customId: '5',
+                                    style: ButtonStyle.Secondary
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: '7',
+                                    customId: '6',
+                                    style: ButtonStyle.Secondary
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: '8',
+                                    customId: '7',
+                                    style: ButtonStyle.Secondary
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: '9',
+                                    customId: '8',
+                                    style: ButtonStyle.Secondary
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: '10',
+                                    customId: '9',
+                                    style: ButtonStyle.Secondary
+                                },
+                            ],
+                        },
+                        {
+                            type: ComponentType.ActionRow,
+                            components: [
+                                {
+                                    type: ComponentType.Button,
+                                    label: 'Anuluj',
+                                    customId: 'CANCEL',
+                                    style: ButtonStyle.Danger,
+                                },
+                                {
+                                    type: ComponentType.Button,
+                                    label: searchPlatform === 'yt' ? 'SoundCloud' : 'YouTube',
+                                    customId: 'PLATFORM',
+                                    style: ButtonStyle.Secondary,
+                                },
+                            ],
+                        },
+                    ],
+                }
+
+                int.editReply(replyContent).catch(err => logger.error(err));
             }
 
-            if (!searchVideoResults.results)
-                return interaction.editReply({ content: 'Nie znaleziono żadnych piosenek!', }).catch(err => logger.error(err));
-
-            const videos = searchVideoResults.items.filter(i => i.type === 'video').splice(0, SEARCH_EMBED_ENTRIES_LENGTH) as Video[];
-
-            let description = ``;
-            videos.forEach((item: Video, index) => {
-                description += `${index + 1} ${songToDisplayString(new YoutubeSong({ duration: parseInt(item.duration), title: item.title, url: item.url }, interaction.user), true)} - \`${item.isUpcoming ? 'UPCOMING' : (item.duration ? item.duration : 'LIVE')}\`\n- ${escapeMarkdown(item.author.name)}\n\n`
-            });
-
-            const replyContent: InteractionEditReplyOptions = {
-                embeds: [{
-                    title: `Wyniki wyszukiwania dla: ${searchVideoResults.correctedQuery}`,
-                    description,
-                    color: config.embedColor,
-                }],
-                components: [
-                    {
-                        type: ComponentType.ActionRow,
-                        components: [
-                            {
-                                type: ComponentType.Button,
-                                label: '1',
-                                customId: '0',
-                                style: ButtonStyle.Secondary
-                            },
-                            {
-                                type: ComponentType.Button,
-                                label: '2',
-                                customId: '1',
-                                style: ButtonStyle.Secondary
-                            },
-                            {
-                                type: ComponentType.Button,
-                                label: '3',
-                                customId: '2',
-                                style: ButtonStyle.Secondary
-                            },
-                            {
-                                type: ComponentType.Button,
-                                label: '4',
-                                customId: '3',
-                                style: ButtonStyle.Secondary
-                            },
-                            {
-                                type: ComponentType.Button,
-                                label: '5',
-                                customId: '4',
-                                style: ButtonStyle.Secondary
-                            },
-                        ],
-                    },
-                    {
-                        type: ComponentType.ActionRow,
-                        components: [
-                            {
-                                type: ComponentType.Button,
-                                label: '6',
-                                customId: '5',
-                                style: ButtonStyle.Secondary
-                            },
-                            {
-                                type: ComponentType.Button,
-                                label: '7',
-                                customId: '6',
-                                style: ButtonStyle.Secondary
-                            },
-                            {
-                                type: ComponentType.Button,
-                                label: '8',
-                                customId: '7',
-                                style: ButtonStyle.Secondary
-                            },
-                            {
-                                type: ComponentType.Button,
-                                label: '9',
-                                customId: '8',
-                                style: ButtonStyle.Secondary
-                            },
-                            {
-                                type: ComponentType.Button,
-                                label: '10',
-                                customId: '9',
-                                style: ButtonStyle.Secondary
-                            },
-                        ],
-                    },
-                    {
-                        type: ComponentType.ActionRow,
-                        components: [
-                            {
-                                type: ComponentType.Button,
-                                label: 'Anuluj',
-                                customId: 'CANCEL',
-                                style: ButtonStyle.Danger,
-                            }
-                        ],
-                    },
-                ],
-            }
-
-            interaction.editReply(replyContent).catch(err => logger.error(err));
-
-            const awaitFilter = (i: ButtonInteraction): boolean => {
+            const filter = (i: ButtonInteraction): boolean => {
                 if (i.user.id === interaction.user.id) return true;
                 else {
-                    i.reply({ content: 'Nie możesz użyć tego przycisku!', ephemeral: true });
+                    i.reply({ content: 'Ten przycisk nie jest dla Ciebie!', ephemeral: true });
                     return false;
                 }
             }
 
-            interactionResponse.awaitMessageComponent({ componentType: ComponentType.Button, filter: awaitFilter, time: 180000 /* 3min */ })
-                .then(async btnInteraction => {
-                    if (btnInteraction.customId === 'CANCEL')
-                        return interaction.deleteReply().catch(err => logger.error(err));
+            const collector = interactionResponse.createMessageComponentCollector({ componentType: ComponentType.Button, filter, idle: 180000 /* 3min */ });
 
-                    const selectedSong = videos[parseInt(btnInteraction.customId)];
+            collector.on('collect', async btnInteraction => {
+                if (btnInteraction.customId === 'CANCEL')
+                    interaction.deleteReply().catch(err => logger.error(err));
+                else {
                     await btnInteraction.deferUpdate()
                         .catch(err => logger.error(err));
 
-                    if (selectedSong.isUpcoming)
-                        return interaction.editReply({ content: 'Nie można dodać nadchodzących piosenek!', embeds: [], components: [], }).catch(err => logger.error(err));
+                    if (btnInteraction.customId === 'PLATFORM') {
+                        if (searchPlatform === 'yt') searchPlatform = 'sc';
+                        else searchPlatform = 'yt';
+                        update(btnInteraction);
+                    } else {
+                        collector.stop();
 
-                    const song = new YoutubeSong({ url: selectedSong.url, title: selectedSong.title, duration: formatedTimeToSeconds(selectedSong.duration) }, interaction.user);
+                        const selectedSong = songs[parseInt(btnInteraction.customId)];
 
-                    await song.patch();
+                        if ((selectedSong instanceof YoutubeSong || selectedSong instanceof SoundcloudSong) && selectedSong.partial) {
+                            await selectedSong.patch().catch(err => logger.error(err));
+                        }
 
-                    queue.addSong(song, next ? 1 : 0, shuffle, skip);
-
-                    const replyContent: InteractionEditReplyOptions = {
-                        embeds: createSongEmbed('Dodano', song, additionalInfo),
-                        components: [],
-                    }
-
-                    interaction.editReply(replyContent).catch(err => logger.error(err));
-                })
-                .catch((reason) => {
-                    if (reason === 'idle')
-                        return interaction.editReply({ content: 'Piosenka nie została wybrana na czas!', embeds: [], components: [], }).catch(err => logger.error(err));
-                    else if (reason instanceof Error) {
-                        if (reason.message.includes('Sign in')) return interaction.editReply({ content: 'Nie można dodać piosenki z ograniczeniami wiekowymi!', embeds: [], components: [], }).catch(err => logger.error(err));
+                        if ((selectedSong instanceof YoutubeSong || selectedSong instanceof SoundcloudSong) && selectedSong.partial)
+                            btnInteraction.editReply({ content: 'Nie udało się dostać informacji o piosence!' }).catch(err => logger.error(err));
                         else {
-                            logger.error(reason);
-                            return interaction.editReply({ content: 'Nie udało się dodać piosenki', embeds: [], components: [], }).catch(err => logger.error(err));
+                            queue.addSong(selectedSong, next ? 1 : 0, shuffle, skip);
+
+                            const replyContent: InteractionEditReplyOptions = {
+                                embeds: createSongEmbed('Dodano', selectedSong, additionalInfo),
+                                components: [],
+                            }
+
+                            interaction.editReply(replyContent).catch(err => logger.error(err));
                         }
                     }
-                });
-            return;
+                }
+            });
 
+            collector.on('end', (_collected, reason) => {
+                if (reason === 'idle') interaction.editReply({ content: 'Piosenka nie została wybrana na czas!', embeds: [], components: [], }).catch(err => logger.error(err));
+                else if (reason !== 'user' && reason !== 'messageDelete') {
+                    logger.error(new Error(reason));
+                    interaction.editReply({ content: 'Nie udało się dodać piosenki', embeds: [], components: [], }).catch(err => logger.error(err));
+                }
+            });
+
+            update();
+            return;
         }
     },
 });

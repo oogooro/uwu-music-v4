@@ -1,4 +1,6 @@
-import { APIEmbed, CommandInteraction, escapeMarkdown, hyperlink, Interaction, InteractionType } from 'discord.js';
+import { APIEmbed, CommandInteraction, escapeMarkdown, hyperlink, Interaction, InteractionType, User } from 'discord.js';
+import ytsr, { Result, Video } from 'ytsr';
+import { soundcloud } from '.';
 import config from './config';
 import { Song } from './structures/Song';
 import { SoundcloudSong } from './structures/SoundcoludSong';
@@ -18,7 +20,7 @@ export function generateInteractionTrace(interaction: Interaction): string {
 }
 
 export function songToDisplayString(song: Song, short: boolean = false): string {
-    let displayString = `${hyperlink(escape(trimString(song.title, 55)), song.url, song.title.length >= 55 ? escape(song.title) : null)}`;
+    let displayString = `${hyperlink(escape(trimString(song.title, 53)), song.url, song.title.length >= 53 ? escape(song.title) : null)}`;
 
     if (short) return displayString;
     else return `${displayString} - \`${song.formatedDuration}\`\n(dodane przez <@${song.addedBy.id}>)`;
@@ -69,4 +71,58 @@ export function createSongEmbed(title: string, song: Song, additionalInfo?: stri
     }]
 
     return embed;
+}
+
+interface searchResult {
+    songsYT: Song[];
+    songsSC: Song[];
+    embedYT: string;
+    embedSC: string;
+}
+
+/**
+ * fucking dumbster fire,
+ * use at your own risk
+ */
+export async function searchSongs(query: string, user: User): Promise<searchResult> {
+    const SEARCH_ENTRIES_LIMIT = 10;
+
+    const searchResults: searchResult = {
+        songsYT: [],
+        songsSC: [],
+        embedYT: '',
+        embedSC: '',
+    };
+    
+        let searchVideoResults: Result;
+
+        try {
+            const filters = await ytsr.getFilters(query);
+            const filterVideos = filters.get('Type').get('Video');
+
+            searchVideoResults = await ytsr(filterVideos.url, { limit: Math.floor(SEARCH_ENTRIES_LIMIT * 1.5), });
+        } catch (err) {
+            throw err;
+        }
+
+        if (!searchVideoResults.results) throw new Error('No videos found');
+
+        const videos = searchVideoResults.items.filter(i => i.type === 'video').splice(0, SEARCH_ENTRIES_LIMIT) as Video[];
+
+        videos.forEach((item: Video, index) => {
+            const song = new YoutubeSong({ duration: parseInt(item.duration), title: item.title, url: item.url }, user);
+            searchResults.songsYT.push(song);
+            searchResults.embedYT += `${index + 1} ${songToDisplayString(song, true)} - \`${item.isUpcoming ? 'UPCOMING' : (item.duration ? item.duration : 'LIVE')}\`\n- ${escape(item.author.name)}\n\n`;
+        });
+
+        const tracks = await soundcloud.tracks.searchV2({ q: query, limit: SEARCH_ENTRIES_LIMIT, }).catch(() => {});
+        if (!tracks || !tracks.total_results) throw new Error('No tracks found');
+
+        tracks.collection.forEach((track, index) => {
+            const song = new SoundcloudSong(track, user);
+            searchResults.songsSC.push(song);
+            searchResults.embedSC += `${index + 1} ${songToDisplayString(song, true)} - \`${song.formatedDuration}\`\n- ${escape(song.uploader)}\n\n`;
+        });
+
+        return searchResults;
 }
