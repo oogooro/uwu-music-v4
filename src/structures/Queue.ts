@@ -57,6 +57,9 @@ export class Queue {
 
             connection.on('stateChange', (oldState, newState) => {
                 logger.debug(`[CONNECTION] ${this.guild.id} ${oldState.status} => ${newState.status}`);
+
+                // Discord fuck you glitch workaround thanks https://discord.com/channels/222078108977594368/1080851305779699773/1081353854307807242
+                if (oldState.status === VoiceConnectionStatus.Ready && newState.status === VoiceConnectionStatus.Connecting) connection.configureNetworking();
             });
 
             connection.on(VoiceConnectionStatus.Destroyed, () => {
