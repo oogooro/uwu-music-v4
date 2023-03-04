@@ -35,7 +35,6 @@ const config: Config = {
             `${__dirname}/../logs/debug/${moment(new Date()).format('D-M-YY-HH-mm-ss')}-debug-${process.env.ENV}.log`,
             `${__dirname}/../logs/debug/latest-debug-${process.env.ENV}.log`,
         ],
-        debugMode: process.env.DEBUG_MODE === '1',
     },
     embedColor: 0x8b05aa,
 }
