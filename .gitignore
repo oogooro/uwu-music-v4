@@ -5,3 +5,5 @@ data
 logs
 .vscode
 bin/*
+src/auth.ts
+.data
