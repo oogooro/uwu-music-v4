@@ -1,6 +1,6 @@
 import { ApplicationCommandOptionType, ButtonInteraction, ButtonStyle, ComponentType, escapeMarkdown, GuildMember, hyperlink, InteractionEditReplyOptions } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
-import { betaServers, queues, soundcloud } from '../..';
+import { experimentalServers, queues, soundcloud } from '../..';
 import { Queue } from '../../structures/Queue';
 import config from '../../config';
 import { createSongEmbed, formatedTimeToSeconds, searchSongs, songToDisplayString, trimString } from '../../utils';
@@ -172,7 +172,7 @@ export default new SlashCommand({
             }
         }
         else if (query.startsWith('https://') || query.startsWith('http://')) {
-            if (!betaServers.has(interaction.guildId)) return interaction.editReply({ content: 'Granie z zewnętrznych liknów jeszcze nie okodowane!' }).catch(err => logger.error(err));
+            if (!experimentalServers.has(interaction.guildId)) return interaction.editReply({ content: 'Granie z zewnętrznych liknów jeszcze nie okodowane!' }).catch(err => logger.error(err));
             if (!query.endsWith('.mp3')) return interaction.editReply({ content: 'Można dodwawać tylko pliki .mp3!' }).catch(err => logger.error(err));
 
             try {

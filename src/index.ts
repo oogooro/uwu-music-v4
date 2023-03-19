@@ -16,7 +16,7 @@ export const debugLogger = new Logger(config.debugLoggerOptions);
 export const soundcloud = new Soundcloud();
 
 export const queues: Collection<string, Queue> = new Collection();
-export const betaServers: Set<string> = new Set();
+export const experimentalServers: Set<string> = new Set();
 
 if (!process.env.ENV) {
     logger.log({

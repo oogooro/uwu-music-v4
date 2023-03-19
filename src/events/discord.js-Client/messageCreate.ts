@@ -1,5 +1,5 @@
 import { ButtonStyle, ComponentType, OAuth2Scopes, PermissionsBitField } from 'discord.js';
-import { betaServers, client, logger } from '../..';
+import { experimentalServers, client, logger } from '../..';
 import { botSettingsDB } from '../../database/botSettings';
 import { DjsClientEvent } from '../../structures/DjsClientEvent';
 
@@ -31,12 +31,12 @@ export default new DjsClientEvent('messageCreate', async message => {
 
     if (devs.includes(message.author.id) && message.mentions.has(client.user)) {
         if (message.inGuild()) {
-            if (message.content.includes('?beta enable')) {
-                betaServers.add(message.guildId);
+            if (message.content.includes('?experimental enable')) {
+                experimentalServers.add(message.guildId);
                 message.react('✅').catch(err => logger.error(err));
             }
-            else if (message.content.includes('?beta disable')) {
-                betaServers.delete(message.guildId);
+            else if (message.content.includes('?experimental disable')) {
+                experimentalServers.delete(message.guildId);
                 message.react('✅').catch(err => logger.error(err));
             }
         }
