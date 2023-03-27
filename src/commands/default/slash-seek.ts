@@ -1,5 +1,5 @@
 import { SlashCommand } from '../../structures/SlashCommand';
-import { client, queues } from '../..';
+import { queues } from '../..';
 import { ApplicationCommandOptionType } from 'discord.js';
 import { formatTimeDisplay, trimString } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
@@ -62,8 +62,8 @@ export default new SlashCommand({
             if (isNaN(timeSecs) || timeSecs < 0)
                 return interaction.reply({ content: 'Nie potrafię rozczytać podani mi czas! Użyj formatu HH:MM:SS czyli np jak chcesz przewinąć do 8 minuty i 20 sekundy piosenki wpisz 8:20', ephemeral: true, }).catch(err => logger.error(err));
 
-            if (timeSecs > queue.songs[0].duration)
-                return interaction.reply({ content: `Nie można przewinąć tak daleko! Ta piosenka ma tylko ${formatTimeDisplay(queue.songs[0].duration)}`, ephemeral: true, }).catch(err => logger.error(err));
+            if (timeSecs > queue.songs[0].duration - 1)
+                return interaction.reply({ content: `Nie można przewinąć tak daleko!`, ephemeral: true, }).catch(err => logger.error(err));
     
             seekTime = timeSecs;
         } else {
