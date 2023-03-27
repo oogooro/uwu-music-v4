@@ -1,6 +1,6 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, getVoiceConnection, StreamType } from '@discordjs/voice';
 import { stream } from 'play-dl';
-import { logger, queues, soundcloud } from '..';
+import { experimentalServers, logger, queues, soundcloud } from '..';
 import { RepeatMode } from '../typings/repeatMode';
 import { songToDisplayString } from '../utils';
 import { YoutubeSong } from './YoutubeSong';
@@ -9,14 +9,17 @@ import { pipeline } from 'node:stream';
 import axios from 'axios';
 import { SponsorBlock } from 'sponsorblock-api';
 import { SoundcloudSong } from './SoundcoludSong';
+import { PlayerEvent } from '../typings/playerEvents';
 
 const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
 
 export class AudioPlayerManager {
+    private seekOffset = 0;
+    private currentResource: AudioResource;
+    private timestampPoolingInterval: NodeJS.Timer;
     guildId: string;
     player: AudioPlayer;
-    private seekOffest = 0;
-    private currentResource: AudioResource;
+    playerEvents: PlayerEvent[] = [];
 
     constructor(guildId: string) {
         this.guildId = guildId;
@@ -26,9 +29,26 @@ export class AudioPlayerManager {
 
         player.on('stateChange', (oldState, newState) => {
             logger.debug(`[PLAYER] ${guildId} ${oldState.status} => ${newState.status}`);
-            if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
-                const queue = queues.get(this.guildId);
+            const queue = queues.get(this.guildId);
 
+            if (!this.timestampPoolingInterval) {
+                this.timestampPoolingInterval = setInterval(() => {
+                    if (!queue.paused && queue.playing) {
+                        // console.log(`Current time: ${formatTimeDisplay(this.getCurrentDuration())}/${queue.songs[0].formatedDuration}`);
+                        if (this.playerEvents.length && (this.playerEvents[0].timestamp <= this.getCurrentDuration()) && (this.playerEvents[0].skipTo > this.getCurrentDuration())) {
+                            const event = this.playerEvents.shift();
+                            console.log(event);
+                            if (event.skipTo !== -1 ) queue.seek(event.skipTo);
+                            else queue.skip();
+                        }
+                    } else {
+                        clearInterval(this.timestampPoolingInterval);
+                        this.timestampPoolingInterval = null;
+                    }
+                }, 1000);
+            }
+
+            if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
                 if (queue.repeatMode === RepeatMode.Disabled) queue.previousSongs.push(queue.songs.shift());
                 else if (queue.repeatMode === RepeatMode.Queue) queue.songs.push(queue.songs.shift());
 
@@ -45,7 +65,15 @@ export class AudioPlayerManager {
 
     getCurrentDuration(): number {
         if (this.player.state.status === AudioPlayerStatus.Idle) return -1;
-        return (this.currentResource.playbackDuration / 1000) + this.seekOffest;
+        return (this.currentResource.playbackDuration / 1000) + this.seekOffset;
+    }
+
+    addEvent(timestamp: number, skipTo: number): PlayerEvent {
+        const event: PlayerEvent = { timestamp, skipTo };
+        this.playerEvents.push(event);
+        this.playerEvents.sort((a, b) => a.timestamp - b.timestamp);
+
+        return event;
     }
 
     async play(seekTime?: number) {
@@ -96,25 +124,46 @@ export class AudioPlayerManager {
 
         if (song instanceof YoutubeSong) {
             if (!seekTime) {
+                this.playerEvents = [];
                 try {
-                    const segments = await sponsorBlock.getSegments(song.id, ['music_offtopic']);
-                    seekTime = segments.find(s => s.startTime === 0).endTime ?? 0;
+                    const segments = await sponsorBlock.getSegments(song.id, ['music_offtopic', 'sponsor']);
+                    segments.forEach(segment => {
+                        if (segment.startTime === 0) seekTime = segment.endTime
+                        else if (experimentalServers.has(queue.guild.id)) {
+                            if (segment.endTime >= song.duration) this.addEvent(segment.startTime, -1);
+                            else this.addEvent(segment.startTime, segment.endTime);
+                        }
+                    });
                 } catch (err) {}
             }
             
-            this.seekOffest = seekTime ?? 0;
-            stream(song.url, { seek: this.seekOffest, quality: 2 })
+            seekTime = seekTime ?? 0;
+            stream(song.url, { seek: seekTime, quality: 2 })
                 .then(ytStream => {
                     const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type });
                     this.currentResource = resource;
+                    this.seekOffset = seekTime;
             
                     this.player.play(resource);
             
                     connection.subscribe(this.player);
                 })
-                .catch(err => logger.error(err));
+                .catch(err => {
+                    logger.error(err);
+                    queue.textChannel.send({
+                        embeds: [{
+                            title: 'Wystąpił błąd!',
+                            description: `Nie można zagrać piosenki:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
+                            color: 0xff0000,
+                            thumbnail: {
+                                url: song.thumbnail,
+                            },
+                        }],
+                    }).catch(err => logger.error(err));
+                    queue.skip(null, true);
+                });
         } else if (song instanceof SoundcloudSong) {
-            this.seekOffest = seekTime ?? 0;
+            seekTime = seekTime ?? 0;
 
             try {
                 const transcoder = new FFmpeg({
@@ -124,19 +173,32 @@ export class AudioPlayerManager {
                         '-ar', '48000',
                         '-ac', '2',
                         '-f', 's16le',
-                        '-ss', this.seekOffest.toString(),
+                        '-ss', seekTime.toString(),
                     ],
                 });
 
                 soundcloud.util.streamTrack(song.url).then(stream => {
                     const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, });
                     this.currentResource = resource;
+                    this.seekOffset = seekTime;
 
                     this.player.play(resource);
 
                     connection.subscribe(this.player);
-                })
-                .catch(err => logger.error(err));
+                }).catch(err => {
+                    logger.error(err);
+                    queue.textChannel.send({
+                        embeds: [{
+                            title: 'Wystąpił błąd!',
+                            description: `Nie można zagrać piosenki:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
+                            color: 0xff0000,
+                            thumbnail: {
+                                url: song.thumbnail,
+                            },
+                        }],
+                    }).catch(err => logger.error(err));
+                    queue.skip(null, true);
+                });
             } catch (err) {
                 queue.textChannel.send({
                     embeds: [{
@@ -154,6 +216,7 @@ export class AudioPlayerManager {
         }
         else {
             try {
+                seekTime = seekTime ?? 0;
                 const transcoder = new FFmpeg({
                     args: [
                         '-analyzeduration', '0',
@@ -161,7 +224,7 @@ export class AudioPlayerManager {
                         '-ar', '48000',
                         '-ac', '2',
                         '-f', 's16le',
-                        '-ss', this.seekOffest.toString(),
+                        '-ss', seekTime.toString(),
                     ],
                 });
 
@@ -173,6 +236,7 @@ export class AudioPlayerManager {
 
                 const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, });
                 this.currentResource = resource;
+                this.seekOffset = seekTime;
 
                 this.player.play(resource);
 
