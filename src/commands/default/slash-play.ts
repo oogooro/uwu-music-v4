@@ -1,14 +1,13 @@
-import { ApplicationCommandOptionType, ButtonInteraction, ButtonStyle, ComponentType, escapeMarkdown, GuildMember, hyperlink, InteractionEditReplyOptions } from 'discord.js';
+import { ApplicationCommandOptionType, ButtonInteraction, ButtonStyle, ComponentType, GuildMember, hyperlink, InteractionEditReplyOptions } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
 import { experimentalServers, queues, soundcloud } from '../..';
 import { Queue } from '../../structures/Queue';
 import config from '../../config';
-import { createSongEmbed, formatedTimeToSeconds, searchSongs, songToDisplayString, trimString } from '../../utils';
+import { createSongEmbed, searchSongs, songToDisplayString } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
 import ytdl from 'ytdl-core';
 import ytpl from 'ytpl';
 import { video_basic_info } from 'play-dl';
-import ytsr, { Result, Video } from 'ytsr';
 import axios from 'axios';
 import { parseStream } from 'music-metadata';
 import { Song } from '../../structures/Song';
@@ -242,31 +241,36 @@ export default new SlashCommand({
                                     type: ComponentType.Button,
                                     label: '1',
                                     customId: '0',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 1 > songs.length,
                                 },
                                 {
                                     type: ComponentType.Button,
                                     label: '2',
                                     customId: '1',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 2 > songs.length,
                                 },
                                 {
                                     type: ComponentType.Button,
                                     label: '3',
                                     customId: '2',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 3 > songs.length,
                                 },
                                 {
                                     type: ComponentType.Button,
                                     label: '4',
                                     customId: '3',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 4 > songs.length,
                                 },
                                 {
                                     type: ComponentType.Button,
                                     label: '5',
                                     customId: '4',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 5 > songs.length,
                                 },
                             ],
                         },
@@ -277,31 +281,36 @@ export default new SlashCommand({
                                     type: ComponentType.Button,
                                     label: '6',
                                     customId: '5',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 6 > songs.length,
                                 },
                                 {
                                     type: ComponentType.Button,
                                     label: '7',
                                     customId: '6',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 7 > songs.length,
                                 },
                                 {
                                     type: ComponentType.Button,
                                     label: '8',
                                     customId: '7',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 8 > songs.length,
                                 },
                                 {
                                     type: ComponentType.Button,
                                     label: '9',
                                     customId: '8',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 9 > songs.length,
                                 },
                                 {
                                     type: ComponentType.Button,
                                     label: '10',
                                     customId: '9',
-                                    style: ButtonStyle.Secondary
+                                    style: ButtonStyle.Secondary,
+                                    disabled: 10 > songs.length,
                                 },
                             ],
                         },

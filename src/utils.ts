@@ -1,6 +1,5 @@
 import { APIEmbed, CommandInteraction, escapeMarkdown, hyperlink, Interaction, InteractionType, User } from 'discord.js';
-import { SoundcloudTrackSearchV2 } from 'soundcloud.ts';
-import ytsr, { Result, Video } from 'ytsr';
+import ytsr, { Video } from 'ytsr';
 import { soundcloud } from '.';
 import config from './config';
 import { Song } from './structures/Song';
@@ -113,7 +112,7 @@ export async function searchSongs(query: string, user: User): Promise<searchResu
                 searchResults.embedYT += `${index + 1} ${songToDisplayString(song, true)} - \`${item.isUpcoming ? 'UPCOMING' : (item.duration ? item.duration : 'LIVE')}\`\n- ${escape(item.author.name)}\n\n`;
             });
     
-            if (!scSearch || !scSearch.total_results) throw new Error('No tracks found');
+            if (!scSearch && !scSearch.total_results) throw new Error('No tracks found');
     
             scSearch.collection.forEach((track, index) => {
                 const song = new SoundcloudSong(track, user);
