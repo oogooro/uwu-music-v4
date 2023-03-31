@@ -9,6 +9,7 @@ export default new DjsClientEvent('voiceStateUpdate', async (oldState, newState)
     if (!queues.has(oldState.guild.id)) return;
     const queue = queues.get(oldState.guild.id);
     const channel = queue.voiceChannel;
+    if (!channel) return;
 
     const guildId = queue.guild.id;
 
