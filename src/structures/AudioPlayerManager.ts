@@ -140,7 +140,8 @@ export class AudioPlayerManager {
             seekTime = seekTime ?? 0;
             stream(song.url, { seek: seekTime, quality: 2 })
                 .then(ytStream => {
-                    const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type });
+                    const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type, inlineVolume: true, });
+                    resource.volume.setVolume(0.5);
                     this.currentResource = resource;
                     this.seekOffset = seekTime;
             
@@ -178,7 +179,8 @@ export class AudioPlayerManager {
                 });
 
                 soundcloud.util.streamTrack(song.url).then(stream => {
-                    const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, });
+                    const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
+                    resource.volume.setVolume(0.5);
                     this.currentResource = resource;
                     this.seekOffset = seekTime;
 
@@ -234,7 +236,8 @@ export class AudioPlayerManager {
                     responseType: 'stream',
                 });
 
-                const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, });
+                const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
+                resource.volume.setVolume(0.5);
                 this.currentResource = resource;
                 this.seekOffset = seekTime;
 
