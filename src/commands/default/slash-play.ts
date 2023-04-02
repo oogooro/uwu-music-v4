@@ -12,6 +12,8 @@ import axios from 'axios';
 import { parseStream } from 'music-metadata';
 import { Song } from '../../structures/Song';
 import { SoundcloudSong } from '../../structures/SoundcoludSong';
+import youtubeSearch from "youtube-search";
+import _ from 'lodash';
 
 export default new SlashCommand({
     data: {
@@ -24,6 +26,7 @@ export default new SlashCommand({
                 name: 'piosenka',
                 description: 'Nazwa/link/playlista z youtube',
                 required: true,
+                autocomplete: true,
             },
             {
                 type: ApplicationCommandOptionType.Boolean,
@@ -393,6 +396,33 @@ export default new SlashCommand({
 
             update();
             return;
+        }
+    },
+    getAutocompletes: async ({ interaction, logger }) => {
+        const query = interaction.options.getFocused();
+        if (!query) return interaction.respond([]).catch(err => logger.error(err));
+
+        if (ytdl.validateURL(query)) {
+            const info: ytdl.videoInfo | void = await ytdl.getBasicInfo(query).catch(err => { logger.error(err) });
+            if (!info) return interaction.respond([]).catch(err => logger.error(err));
+
+            return interaction.respond([{ name: info.videoDetails.title.slice(0, 100), value: info.videoDetails.video_url, }]).catch(err => { logger.error(err) });
+        } else if (ytpl.validateID(query)) {
+            const info: ytpl.Result | void = await ytpl(query).catch(err => { logger.error(err) });
+            if (!info) return interaction.respond([]).catch(err => logger.error(err));
+
+            return interaction.respond([{ name: info.title.slice(0, 100), value: info.url, }]).catch(err => { logger.error(err) });
+        } else {
+            const startTime = performance.now();
+    
+            const search = await youtubeSearch(query, { key: process.env.YOUTUBE_KEY, }).catch(err => { logger.error(err) });
+            if (!search) return interaction.respond([]).catch(err => logger.error(err));
+            
+            search.results = search.results.filter(({ kind }) => kind === 'youtube#video' || kind === 'youtube#playlist').slice(0, 25);
+            interaction.respond(search.results.map(result => { return { name: _.unescape(result.title.slice(0, 100)), value: result.link, }; } )).catch(err => logger.error(err));
+            
+            const endTime = performance.now();
+            logger.debug(`Youtube search autocomplete took ${((endTime - startTime) / 1000).toFixed(2)}s; Found ${search.results.length} results`);
         }
     },
 });

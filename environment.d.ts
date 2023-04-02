@@ -9,6 +9,7 @@ declare global {
             DEBUG_MODE?: '1' | '0';
             PORT: string;
             SPONSORBLOCK_USER_ID: string;
+            YOUTUBE_KEY: string;
         }
     }
 }
