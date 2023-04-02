@@ -137,8 +137,8 @@ const pageContents = {
 `,
     manage: `
     <p class="bold">Przyciski:</p>
-    <p><input type="button" id="btnRegisterGuild" value="Zajerestruj komendy dla głównego serwera"></p>
-    <p><input type="button" id="btnRegisterGlobal" value="Zajerestruj globalne komendy"></p>
+    <p><input type="button" id="btnRegisterGuild" value="Zarejestruj komendy dla głównego serwera"></p>
+    <p><input type="button" id="btnRegisterGlobal" value="Zarejestruj globalne komendy"></p>
     <p><input type="button" id="btnUnregisterGuild" value="Usuń komendy dla głównego serwera"></p>
     <p><input type="button" id="btnUnregisterGlobal" value="Usuń globalne komendy"></p>
     <p class="bold">Ustawienia:</p>
