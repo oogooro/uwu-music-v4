@@ -137,7 +137,7 @@ export class AudioPlayerManager {
                 } catch (err) {}
             }
             
-            seekTime = seekTime ?? 0;
+            seekTime = Math.floor(seekTime) ?? 0;
             stream(song.url, { seek: seekTime, quality: 2 })
                 .then(ytStream => {
                     const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type, inlineVolume: true, });
@@ -164,7 +164,7 @@ export class AudioPlayerManager {
                     queue.skip(null, true);
                 });
         } else if (song instanceof SoundcloudSong) {
-            seekTime = seekTime ?? 0;
+            seekTime = Math.floor(seekTime) ?? 0;
 
             try {
                 const transcoder = new FFmpeg({
@@ -218,7 +218,7 @@ export class AudioPlayerManager {
         }
         else {
             try {
-                seekTime = seekTime ?? 0;
+                seekTime = Math.floor(seekTime) ?? 0;
                 const transcoder = new FFmpeg({
                     args: [
                         '-analyzeduration', '0',
