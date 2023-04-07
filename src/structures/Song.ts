@@ -8,6 +8,7 @@ export class Song {
     public duration: number;
     public formatedDuration: string;
     public url: string;
+    public volume: number;
 
     constructor(metadata: SongData, addedByUser: User) {
         this.title = metadata.title;
