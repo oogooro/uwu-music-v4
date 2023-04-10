@@ -180,7 +180,7 @@ export class AudioPlayerManager {
 
                 soundcloud.util.streamTrack(song.url).then(stream => {
                     const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
-                    resource.volume.setVolume(song.volume ?? 0.5);
+                    resource.volume.setVolume(song.volume);
                     this.currentResource = resource;
                     this.seekOffset = seekTime;
 
@@ -237,7 +237,7 @@ export class AudioPlayerManager {
                 });
 
                 const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
-                resource.volume.setVolume(song.volume ?? 0.5);
+                resource.volume.setVolume(song.volume);
                 this.currentResource = resource;
                 this.seekOffset = seekTime;
 
