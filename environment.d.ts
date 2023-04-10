@@ -5,7 +5,7 @@ declare global {
             DISCORDBOT_DEV_TOKEN: string;
             DISCORDAPP_TOKEN: string;
             BOT_GUILD_ID: string;
-            ENV: 'dev' | 'prod' | 'debug';
+            ENV: 'dev' | 'prod';
             DEBUG_MODE?: '1' | '0';
             PORT: string;
             SPONSORBLOCK_USER_ID: string;
