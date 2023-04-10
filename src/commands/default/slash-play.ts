@@ -399,6 +399,8 @@ export default new SlashCommand({
         }
     },
     getAutocompletes: async ({ interaction, logger }) => {
+        if (process.env.ENV === 'dev') return interaction.respond([]).catch(err => logger.error(err));
+
         const query = interaction.options.getFocused();
         if (!query) return interaction.respond([]).catch(err => logger.error(err));
 
