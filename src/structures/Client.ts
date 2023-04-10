@@ -1,5 +1,5 @@
 import { ApplicationCommandDataResolvable, Client, ClientEvents, ClientOptions, Collection, RestEvents } from 'discord.js';
-import glob from 'glob';
+import { glob } from 'glob';
 import { BotCommand, CommandCategoryManifest, CommandManager } from '../typings/commandManager';
 import { DjsClientEvent } from './DjsClientEvent';
 import { logger } from '..';
