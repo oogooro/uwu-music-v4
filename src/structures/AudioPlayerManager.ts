@@ -76,7 +76,7 @@ export class AudioPlayerManager {
         return event;
     }
 
-    async play(seekTime?: number) {
+    async play(seekTime = 0) {
         const connection = getVoiceConnection(this.guildId);
         const queue = queues.get(this.guildId);
 
@@ -137,7 +137,7 @@ export class AudioPlayerManager {
                 } catch (err) {}
             }
             
-            seekTime = Math.floor(seekTime) ?? 0;
+            seekTime = Math.floor(seekTime);
             stream(song.url, { seek: seekTime, quality: 2 })
                 .then(ytStream => {
                     const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type, inlineVolume: true, });
@@ -164,7 +164,7 @@ export class AudioPlayerManager {
                     queue.skip(null, true);
                 });
         } else if (song instanceof SoundcloudSong) {
-            seekTime = Math.floor(seekTime) ?? 0;
+            seekTime = Math.floor(seekTime);
 
             try {
                 const transcoder = new FFmpeg({
@@ -218,7 +218,7 @@ export class AudioPlayerManager {
         }
         else {
             try {
-                seekTime = Math.floor(seekTime) ?? 0;
+                seekTime = Math.floor(seekTime);
                 const transcoder = new FFmpeg({
                     args: [
                         '-analyzeduration', '0',
