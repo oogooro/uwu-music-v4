@@ -1,21 +1,30 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, getVoiceConnection, StreamType } from '@discordjs/voice';
-import { stream } from 'play-dl';
-import { experimentalServers, logger, queues, soundcloud } from '..';
+import { logger, queues } from '..';
 import { RepeatMode } from '../typings/repeatMode';
 import { songToDisplayString } from '../utils';
 import { YoutubeSong } from './YoutubeSong';
-import { FFmpeg } from 'prism-media'; 
 import { pipeline } from 'node:stream';
-import axios from 'axios';
 import { SponsorBlock } from 'sponsorblock-api';
-import { SoundcloudSong } from './SoundcoludSong';
 import { PlayerEvent } from '../typings/playerEvents';
+import { spawn, ChildProcess } from 'node:child_process';
+import config from '../config';
+import ffmpegPath from 'ffmpeg-static';
 
 const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
+
+interface Processes {
+    ytdlp: ChildProcess;
+    ffmpeg: ChildProcess;
+}
 
 export class AudioPlayerManager {
     private seekOffset = 0;
     private timestampPoolingInterval: NodeJS.Timer;
+    private procesess: Processes = {
+        ytdlp: null,
+        ffmpeg: null,
+    };
+    private streamPipe?: any;
     currentResource: AudioResource;
     guildId: string;
     player: AudioPlayer;
@@ -24,7 +33,7 @@ export class AudioPlayerManager {
     constructor(guildId: string) {
         this.guildId = guildId;
 
-        const player = createAudioPlayer(); 
+        const player = createAudioPlayer();
         this.player = player;
 
         player.on('stateChange', (oldState, newState) => {
@@ -38,7 +47,7 @@ export class AudioPlayerManager {
                         if (this.playerEvents.length && (this.playerEvents[0].timestamp <= this.getCurrentDuration()) && (this.playerEvents[0].skipTo > this.getCurrentDuration())) {
                             const event = this.playerEvents.shift();
                             console.log(event);
-                            if (event.skipTo !== -1 ) queue.seek(event.skipTo);
+                            if (event.skipTo !== -1) queue.seek(event.skipTo);
                             else queue.skip();
                         }
                     } else {
@@ -52,6 +61,8 @@ export class AudioPlayerManager {
                 if (queue.repeatMode === RepeatMode.Disabled) queue.previousSongs.push(queue.songs.shift());
                 else if (queue.repeatMode === RepeatMode.Queue) queue.songs.push(queue.songs.shift());
 
+                this.cleanStreamsAndProcesses();
+
                 if (queue.songs.length) this.play();
                 else queue.playing = false;
             }
@@ -61,6 +72,16 @@ export class AudioPlayerManager {
             logger.error(err);
             queues.get(this.guildId).playing = false;
         });
+    }
+
+    private cleanStreamsAndProcesses(): void {
+        this.procesess.ffmpeg?.kill();
+        this.procesess.ytdlp?.kill();
+
+        this.procesess.ytdlp?.stdout.destroy();
+        this.procesess.ffmpeg?.stdin.destroy();
+        this.procesess.ffmpeg?.stdout.destroy();
+        this.streamPipe?.destroy();
     }
 
     getCurrentDuration(): number {
@@ -84,14 +105,16 @@ export class AudioPlayerManager {
         if (!queue) return void logger.error(new Error('No queue'));
         if (!queue.songs.length) return void logger.error(new Error('No songs'));
 
+        this.cleanStreamsAndProcesses();
+
         queue.playing = true;
 
         const [song, nextSong] = queue.songs;
 
         try {
             if (song instanceof YoutubeSong && song.partial) await song.patch();
-            
-            if (nextSong && (nextSong instanceof YoutubeSong) && nextSong.partial) nextSong.patch().catch(() => {/* it will throw the next time */});
+
+            if (nextSong && (nextSong instanceof YoutubeSong) && nextSong.partial) nextSong.patch().catch(() => { /* it will throw the next time */ });
         } catch (err) {
             if (err instanceof Error) {
                 if (song instanceof YoutubeSong && err.message.includes('Sign in')) {
@@ -107,7 +130,7 @@ export class AudioPlayerManager {
                     }).catch(err => logger.error(err));
                 } else {
                     logger.error(err);
-        
+
                     queue.textChannel.send({
                         embeds: [{
                             title: 'Wystąpił błąd!',
@@ -116,148 +139,60 @@ export class AudioPlayerManager {
                         }],
                     }).catch(err => logger.error(err));
                 }
-                
-                queue.skip(null, true);
-                return;
-            }
-        }
-
-        if (song instanceof YoutubeSong) {
-            if (!seekTime) {
-                this.playerEvents = [];
-                try {
-                    const segments = await sponsorBlock.getSegments(song.id, ['music_offtopic', 'sponsor']);
-                    segments.forEach(segment => {
-                        if (segment.startTime === 0) seekTime = segment.endTime
-                        else if (experimentalServers.has(queue.guild.id)) {
-                            if (segment.endTime >= song.duration) this.addEvent(segment.startTime, -1);
-                            else this.addEvent(segment.startTime, segment.endTime);
-                        }
-                    });
-                } catch (err) {}
-            }
-            
-            seekTime = Math.floor(seekTime);
-            stream(song.url, { seek: seekTime, quality: 2 })
-                .then(ytStream => {
-                    const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type, inlineVolume: true, });
-                    resource.volume.setVolume(song.volume ?? 0.5);
-                    this.currentResource = resource;
-                    this.seekOffset = seekTime;
-            
-                    this.player.play(resource);
-            
-                    connection.subscribe(this.player);
-                })
-                .catch(err => {
-                    logger.error(err);
-                    queue.textChannel.send({
-                        embeds: [{
-                            title: 'Wystąpił błąd!',
-                            description: `Nie można zagrać piosenki:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
-                            color: 0xff0000,
-                            thumbnail: {
-                                url: song.thumbnail,
-                            },
-                        }],
-                    }).catch(err => logger.error(err));
-                    queue.skip(null, true);
-                });
-        } else if (song instanceof SoundcloudSong) {
-            seekTime = Math.floor(seekTime);
-
-            try {
-                const transcoder = new FFmpeg({
-                    args: [
-                        '-analyzeduration', '0',
-                        '-loglevel', '0',
-                        '-ar', '48000',
-                        '-ac', '2',
-                        '-f', 's16le',
-                        '-ss', seekTime.toString(),
-                    ],
-                });
-
-                soundcloud.util.streamTrack(song.url).then(stream => {
-                    const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
-                    resource.volume.setVolume(song.volume);
-                    this.currentResource = resource;
-                    this.seekOffset = seekTime;
-
-                    this.player.play(resource);
-
-                    connection.subscribe(this.player);
-                }).catch(err => {
-                    logger.error(err);
-                    queue.textChannel.send({
-                        embeds: [{
-                            title: 'Wystąpił błąd!',
-                            description: `Nie można zagrać piosenki:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
-                            color: 0xff0000,
-                            thumbnail: {
-                                url: song.thumbnail,
-                            },
-                        }],
-                    }).catch(err => logger.error(err));
-                    queue.skip(null, true);
-                });
-            } catch (err) {
-                queue.textChannel.send({
-                    embeds: [{
-                        title: 'Wystąpił błąd!',
-                        description: `Nie udało się zagrać:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
-                        color: 0xff0000,
-                    }],
-                }).catch(err => logger.error(err));
-
-                logger.error(err);
 
                 queue.skip(null, true);
                 return;
             }
         }
-        else {
-            try {
-                seekTime = Math.floor(seekTime);
-                const transcoder = new FFmpeg({
-                    args: [
-                        '-analyzeduration', '0',
-                        '-loglevel', '0',
-                        '-ar', '48000',
-                        '-ac', '2',
-                        '-f', 's16le',
-                        '-ss', seekTime.toString(),
-                    ],
-                });
 
-                const { data: stream } = await axios({
-                    method: 'GET',
-                    url: song.url,
-                    responseType: 'stream',
-                });
+        console.log(song.url);
 
-                const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
-                resource.volume.setVolume(song.volume);
-                this.currentResource = resource;
-                this.seekOffset = seekTime;
+        const ytdlpProcess = spawn(config.ytdlpPath, [
+            '-q',
+            '-f', 'ba',
+            song.url,
+            '-o', '-',
+        ], {
+            stdio: [
+                'pipe', 'pipe', 'inherit',
+            ],
+        });
 
-                this.player.play(resource);
+        const ffmpegProcess = spawn(ffmpegPath, [
+            '-analyzeduration', '0',
+            '-loglevel', '0',
+            '-i', '-',
+            '-ar', '48000',
+            '-ac', '2',
+            '-f', 's16le',
+            '-ss', seekTime.toString(),
+            'pipe:1',
+        ], {
+            stdio: [
+                'pipe', 'pipe', 'inherit',
+            ],
+        });
 
-                connection.subscribe(this.player);
-            } catch (err) {
-                queue.textChannel.send({
-                    embeds: [{
-                        title: 'Wystąpił błąd!',
-                        description: `Nie udało się zagrać:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
-                        color: 0xff0000,
-                    }],
-                }).catch(err => logger.error(err));
-
-                logger.error(err);
-
-                queue.skip(null, true);
-                return;
-            }
+        const pipe = pipeline(ytdlpProcess.stdout, ffmpegProcess.stdin, () => void 0);
+        
+        this.procesess = {
+            ffmpeg: ffmpegProcess,
+            ytdlp: ytdlpProcess,
         }
+
+        this.streamPipe = pipe;
+
+        ytdlpProcess.on('error', err => logger.error(err));
+        ffmpegProcess.on('error', err => logger.error(err));
+        pipe.on('error', err => logger.error(err));
+
+        const resource = createAudioResource(ffmpegProcess.stdout, { inputType: StreamType.Raw });
+        // resource.volume.setVolume(song.volume);
+        this.currentResource = resource;
+        this.seekOffset = seekTime;
+
+        this.player.play(resource);
+
+        connection.subscribe(this.player);
     }
 }

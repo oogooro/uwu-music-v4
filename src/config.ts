@@ -2,12 +2,14 @@ import { ClientOptions, IntentsBitField, Partials } from 'discord.js';
 import { LoggerOptions } from 'log4uwu';
 import moment from 'moment';
 import { botSettingsDB } from './database/botSettings';
+import { join } from 'node:path';
 
 type Config = {
     clientOptions: ClientOptions;
     loggerOptions: LoggerOptions;
     debugLoggerOptions: LoggerOptions;
     embedColor: number;
+    ytdlpPath: string;
 }
 
 const intentFlags = IntentsBitField.Flags;
@@ -37,6 +39,7 @@ const config: Config = {
         ],
     },
     embedColor: 0x8b05aa,
+    ytdlpPath: join(__dirname, '../bin/yt-dlp'),
 }
 
 export default config; 
