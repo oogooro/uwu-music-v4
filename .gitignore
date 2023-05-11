@@ -2,7 +2,7 @@ node_modules
 dist
 .env
 data
-logs
+*.log
 .vscode
 bin/*
 src/auth.ts
