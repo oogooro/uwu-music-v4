@@ -15,6 +15,7 @@ export type MessageCommandType = {
     disabled?: boolean;
     global?: boolean;
     dev?: boolean;
+    private?: boolean;
     nsfw?: boolean;
     vcOnly?: boolean;
     queueRequired?: boolean;

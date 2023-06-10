@@ -1,12 +1,11 @@
-import { client } from "../..";
-import { SlashCommand } from "../../structures/SlashCommand";
+import { client } from '../..';
+import { SlashCommand } from '../../structures/SlashCommand';
 
 export default new SlashCommand({
     data: {
         name: 'status',
         description: '[DEV] Status bota',
     },
-    dev: true,
     run: async ({ interaction, logger }) => {
         const commandArray: string[] = [];
         const publicCommandsArray: string[] = [];

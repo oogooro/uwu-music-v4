@@ -82,6 +82,7 @@ export class ExtendedClient extends Client {
             const command: BotCommand = await this.importFile(defualtCommandPath);
 
             if (!command?.data || command.disabled) return;
+            if (command.dev && process.env.ENV !== 'dev') return;
             command.global = true;
             this.commands.commandsExecutable.set(command.data.name, command);
             this.commands.payload.global.push(command.data);
@@ -98,7 +99,8 @@ export class ExtendedClient extends Client {
             const command: BotCommand = await this.importFile(privateCommandPath);
 
             if (!command?.data || command.disabled) return;
-            command.dev = true;
+            if (command.dev && process.env.ENV !== 'dev') return;
+            command.private = true;
             this.commands.commandsExecutable.set(command.data.name, command);
             this.commands.payload.allCommands.push(command.data);
         });
