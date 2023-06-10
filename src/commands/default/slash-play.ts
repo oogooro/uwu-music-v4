@@ -7,13 +7,14 @@ import { createSongEmbed, searchSongs, songToDisplayString } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
 import ytdl from 'ytdl-core';
 import ytpl from 'ytpl';
-import { video_basic_info } from 'play-dl';
+import play, { SpotifyAlbum, SpotifyPlaylist, SpotifyTrack, video_basic_info } from 'play-dl';
 import axios from 'axios';
 import { parseStream } from 'music-metadata';
 import { Song } from '../../structures/Song';
 import { SoundcloudSong } from '../../structures/SoundcoludSong';
 import youtubeSearch from "youtube-search";
 import _ from 'lodash';
+import { SpotifySong } from '../../structures/SpotifySong';
 
 export default new SlashCommand({
     data: {
@@ -172,9 +173,46 @@ export default new SlashCommand({
     
                 interaction.editReply(replyContent).catch(err => logger.error(err));
             }
-        }
-        else if (query.startsWith('https://') || query.startsWith('http://')) {
-            if (!experimentalServers.has(interaction.guildId)) return interaction.editReply({ content: 'Granie z zewnętrznych liknów jeszcze nie okodowane!' }).catch(err => logger.error(err));
+        } else if (query.startsWith('https://open.spotify.com/')) {
+            if (!experimentalServers.has(interaction.guildId)) return interaction.editReply({ content: 'Piosenki ze Spotify jeszcze nie są dostępne!' }).catch(err => logger.error(err));
+            if (play.is_expired()) await play.refreshToken();
+
+            const spotData = await play.spotify(query).catch(err => { logger.error(err) });
+            if (!spotData) return interaction.editReply({ content: 'Nie można znaleźć piosenki!', }).catch(err => logger.error(err));
+
+            if (spotData.type === 'track') {
+                const song = new SpotifySong(spotData as SpotifyTrack, interaction.user)
+
+                queue.addSong(song, next ? 1 : 0, shuffle, skip);
+
+                const replyContent: InteractionEditReplyOptions = {
+                    embeds: createSongEmbed('Dodano', song, additionalInfo),
+                }
+
+                interaction.editReply(replyContent).catch(err => logger.error(err));
+            } else {
+                const spotAlbumOrPlaylist = (spotData as SpotifyAlbum | SpotifyPlaylist);
+                const tracks = await spotAlbumOrPlaylist.all_tracks();
+
+                const songs = tracks.map(track => new SpotifySong(track, interaction.user));
+
+                queue.addList(songs, next ? 1 : 0, shuffle, skip);
+
+                const replyContent: InteractionEditReplyOptions = {
+                    embeds: [{
+                        title: 'Dodano',
+                        color: config.embedColor,
+                        description: `${tracks.length} piosenek z ${hyperlink(spotAlbumOrPlaylist.name, spotAlbumOrPlaylist.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
+                        thumbnail: {
+                            url: spotAlbumOrPlaylist.thumbnail.url,
+                        },
+                    }],
+                }
+
+                interaction.editReply(replyContent).catch(err => logger.error(err));
+            }
+        } else if (query.startsWith('https://') || query.startsWith('http://')) {
+            if (!experimentalServers.has(interaction.guildId)) return interaction.editReply({ content: 'Można grać tylko z youtube lub spotify' }).catch(err => logger.error(err));
             if (!query.endsWith('.mp3')) return interaction.editReply({ content: 'Można dodwawać tylko pliki .mp3!' }).catch(err => logger.error(err));
 
             try {
@@ -414,6 +452,14 @@ export default new SlashCommand({
             if (!info) return interaction.respond([]).catch(err => logger.error(err));
 
             return interaction.respond([{ name: info.title.slice(0, 100), value: info.url, }]).catch(err => { logger.error(err) });
+        } else if (query.startsWith('https://open.spotify.com/')) {
+            if (!experimentalServers.has(interaction.guildId)) return interaction.respond([]);
+            if (play.is_expired()) await play.refreshToken();
+
+            const spotData = await play.spotify(query).catch(err => { logger.error(err) });
+            if (!spotData) return interaction.respond([]);
+
+            return interaction.respond([{ name: spotData.name.slice(0, 100), value: spotData.url, }]).catch(err => { logger.error(err) });
         } else {
             const startTime = performance.now();
     

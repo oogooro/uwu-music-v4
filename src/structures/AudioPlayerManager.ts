@@ -10,6 +10,7 @@ import axios from 'axios';
 import { SponsorBlock } from 'sponsorblock-api';
 import { SoundcloudSong } from './SoundcoludSong';
 import { PlayerEvent } from '../typings/playerEvents';
+import { SpotifySong } from './SpotifySong';
 
 const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
 
@@ -89,9 +90,12 @@ export class AudioPlayerManager {
         const [song, nextSong] = queue.songs;
 
         try {
-            if (song instanceof YoutubeSong && song.partial) await song.patch();
-            
-            if (nextSong && (nextSong instanceof YoutubeSong) && nextSong.partial) nextSong.patch().catch(() => {/* it will throw the next time */});
+            if (song instanceof YoutubeSong || song instanceof SpotifySong) {
+                const ytSong = song instanceof YoutubeSong ? song : await song.getYoutubeEquivalent();
+                if (ytSong.partial) await ytSong.patch();
+                
+                if (nextSong && (nextSong instanceof YoutubeSong) && nextSong.partial) nextSong.patch().catch(() => {/* it will throw the next time */});
+            }
         } catch (err) {
             if (err instanceof Error) {
                 if (song instanceof YoutubeSong && err.message.includes('Sign in')) {
@@ -122,15 +126,16 @@ export class AudioPlayerManager {
             }
         }
 
-        if (song instanceof YoutubeSong) {
+        if (song instanceof YoutubeSong || song instanceof SpotifySong) {
+            const ytSong = song instanceof YoutubeSong ? song : await song.getYoutubeEquivalent();
             if (!seekTime) {
                 this.playerEvents = [];
                 try {
-                    const segments = await sponsorBlock.getSegments(song.id, ['music_offtopic', 'sponsor']);
+                    const segments = await sponsorBlock.getSegments(ytSong.id, ['music_offtopic', 'sponsor']);
                     segments.forEach(segment => {
                         if (segment.startTime === 0) seekTime = segment.endTime
                         else if (experimentalServers.has(queue.guild.id)) {
-                            if (segment.endTime >= song.duration) this.addEvent(segment.startTime, -1);
+                            if (segment.endTime >= ytSong.duration) this.addEvent(segment.startTime, -1);
                             else this.addEvent(segment.startTime, segment.endTime);
                         }
                     });
@@ -138,10 +143,10 @@ export class AudioPlayerManager {
             }
             
             seekTime = Math.floor(seekTime);
-            stream(song.url, { seek: seekTime, quality: 2 })
+            stream(ytSong.url, { seek: seekTime, quality: 2 })
                 .then(ytStream => {
                     const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type, inlineVolume: true, });
-                    resource.volume.setVolume(song.volume ?? 0.5);
+                    resource.volume.setVolume(ytSong.volume ?? 0.5);
                     this.currentResource = resource;
                     this.seekOffset = seekTime;
             
@@ -154,10 +159,10 @@ export class AudioPlayerManager {
                     queue.textChannel.send({
                         embeds: [{
                             title: 'Wystąpił błąd!',
-                            description: `Nie można zagrać piosenki:\n\n${songToDisplayString(song, true)}\n\nPiosenka zostaje pominięta!`,
+                            description: `Nie można zagrać piosenki:\n\n${songToDisplayString(ytSong, true)}\n\nPiosenka zostaje pominięta!`,
                             color: 0xff0000,
                             thumbnail: {
-                                url: song.thumbnail,
+                                url: ytSong.thumbnail,
                             },
                         }],
                     }).catch(err => logger.error(err));

@@ -5,6 +5,7 @@ import config from './config';
 import { Song } from './structures/Song';
 import { SoundcloudSong } from './structures/SoundcoludSong';
 import { YoutubeSong } from './structures/YoutubeSong';
+import { SpotifySong } from './structures/SpotifySong';
 
 let customIdIncrement = 0;
 export function generateCustomId(text: string, interaction: CommandInteraction): string {
@@ -64,7 +65,7 @@ export function createSongEmbed(title: string, song: Song, additionalInfo?: stri
     const embed: APIEmbed[] = [{
         title: title,
         thumbnail: {
-            url: song instanceof YoutubeSong || song instanceof SoundcloudSong ? song.thumbnail : null,
+            url: song instanceof YoutubeSong || song instanceof SoundcloudSong || song instanceof SpotifySong ? song.thumbnail : null,
         },
         description: songToDisplayString(song) + (additionalInfo?.length ? '\n\n' + additionalInfo.join('\n') : ''),
         color: config.embedColor,
