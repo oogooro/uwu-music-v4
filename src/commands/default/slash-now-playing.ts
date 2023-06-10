@@ -21,25 +21,14 @@ export default new SlashCommand({
 
         let progressString = '[';
 
-        if (song instanceof YoutubeSong && song.live) {
-            const text = 'LIVESTREAM';
-
-            for (let i = 0; i <= (PROGRESS_LENGHT - text.length) / 2; i++) {
-                progressString += ' ';
-            }
-            progressString += text;
-            for (let i = 0; i <= (PROGRESS_LENGHT - text.length) / 2; i++) {
-                progressString += ' ';
-            }
-        } else {
+        if (song instanceof YoutubeSong && !song.live) {
             for (let i = 0; i <= PROGRESS_LENGHT; i++ ) {
                 if (i < progress) progressString += '―';
                 else if (i === progress) progressString += '๏';
                 else progressString += ' ';
             }
-        }
-
-        progressString += ']';
+            progressString += ']';
+        } else progressString = '';
 
         const songsLeft = queue.songs.length - 1;
 
