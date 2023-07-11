@@ -21,14 +21,16 @@ export default new SlashCommand({
 
         let progressString = '[';
 
-        if (song instanceof YoutubeSong && !song.live) {
+        if (song instanceof YoutubeSong && song.live) {
+            progressString = ''
+        } else {
             for (let i = 0; i <= PROGRESS_LENGHT; i++ ) {
                 if (i < progress) progressString += '―';
                 else if (i === progress) progressString += '๏';
                 else progressString += ' ';
             }
             progressString += ']';
-        } else progressString = '';
+        }
 
         const songsLeft = queue.songs.length - 1;
 
