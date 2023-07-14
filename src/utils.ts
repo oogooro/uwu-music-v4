@@ -21,6 +21,7 @@ export function generateInteractionTrace(interaction: Interaction): string {
 }
 
 export function songToDisplayString(song: Song, short: boolean = false): string {
+    song.title = song.title.replace(/([\uE000-\uF8FF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDDFF])/g, ''); // strip emojis because they fuck things up
     let displayString = `${hyperlink(escape(trimString(song.title, 53)), song.url, song.title.length >= 53 ? escape(song.title) : null)}`;
 
     if (short) return displayString;
