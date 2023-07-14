@@ -16,7 +16,7 @@ export default new SlashCommand({
         
         if (!song) return interaction.reply({ content: 'Aktualnie nic nie gra!' }).catch(err => logger.error(err));
 
-        const PROGRESS_LENGHT: number = 40;
+        const PROGRESS_LENGHT: number = 30;
         const progress = Math.round(queue.audioPlayer.getCurrentDuration() / song.duration * PROGRESS_LENGHT);
 
         let progressString = '[';
