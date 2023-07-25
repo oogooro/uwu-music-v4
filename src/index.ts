@@ -32,4 +32,13 @@ logger.log({
     color: 'greenBright',
 });
 
+if (!process.env.BOT_GUILD_ID) {
+    logger.log({
+        level: 'warn',
+        message: 'BOT_GUILD_ID is not set!'
+    });
+} else if (process.env.ENV === 'dev') {
+    experimentalServers.add(process.env.BOT_GUILD_ID);
+}
+
 client.start();

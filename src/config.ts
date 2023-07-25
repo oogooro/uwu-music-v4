@@ -36,7 +36,7 @@ const config: Config = {
             `${__dirname}/../logs/debug/latest-debug-${process.env.ENV}.log`,
         ],
     },
-    embedColor: 0x8b05aa,
+    embedColor: process.env.ENV === 'prod' ? 0x8b05aa : 0x000095,
 }
 
 export default config; 
