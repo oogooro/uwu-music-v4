@@ -1,4 +1,4 @@
-import { ApplicationCommandOptionType, ButtonInteraction, ButtonStyle, ComponentType, GuildMember, hyperlink, InteractionEditReplyOptions } from 'discord.js';
+import { ApplicationCommandOptionChoiceData, ApplicationCommandOptionType, ButtonInteraction, ButtonStyle, ComponentType, GuildMember, hyperlink, InteractionEditReplyOptions } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
 import { experimentalServers, queues, soundcloud } from '../..';
 import { Queue } from '../../structures/Queue';
@@ -15,6 +15,7 @@ import { SoundcloudSong } from '../../structures/SoundcoludSong';
 import youtubeSearch from "youtube-search";
 import _ from 'lodash';
 import { SpotifySong } from '../../structures/SpotifySong';
+import { userPreferencesDB } from '../../database/userPreferences';
 
 export default new SlashCommand({
     data: {
@@ -437,10 +438,19 @@ export default new SlashCommand({
         }
     },
     getAutocompletes: async ({ interaction, logger }) => {
-        if (process.env.ENV === 'dev' && !experimentalServers.has(interaction.guildId)) return interaction.respond([]).catch(err => logger.error(err));
-
         const query = interaction.options.getFocused();
-        if (!query) return interaction.respond([]).catch(err => logger.error(err));
+        if (!query) {
+            const preferences = userPreferencesDB.get(interaction.user.id)
+            if (!preferences.keepHistory) return interaction.respond([]).catch(err => logger.error(err));
+            const songs: ApplicationCommandOptionChoiceData<string>[] = [];
+            preferences.lastAddedSongs.forEach(item => {
+                songs.push({
+                    name: item.title,
+                    value: item.url,
+                });
+            });
+            return interaction.respond(songs);
+        }
 
         if (ytdl.validateURL(query)) {
             const info: ytdl.videoInfo | void = await ytdl.getBasicInfo(query).catch(err => { logger.error(err) });
@@ -461,6 +471,7 @@ export default new SlashCommand({
 
             return interaction.respond([{ name: spotData.name.slice(0, 100), value: spotData.url, }]).catch(err => { logger.error(err) });
         } else {
+            if (process.env.ENV === 'dev' && !experimentalServers.has(interaction.guildId)) return interaction.respond([]).catch(err => logger.error(err));
             const startTime = performance.now();
     
             const search = await youtubeSearch(query, { key: process.env.YOUTUBE_KEY, }).catch(err => { logger.error(err) });
