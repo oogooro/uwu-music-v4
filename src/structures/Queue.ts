@@ -81,17 +81,16 @@ export class Queue {
     }
 
     public addSong(song: Song, position?: number, shuffle?: boolean, skip?: boolean): void {
-        let wasEmpty = false;
-        if (!this.songs.length) wasEmpty = true;
+        const previouslyEmpty = !this.songs.length;
 
         this.duration += song.duration;
         if (!position) this.songs.push(song);
         else this.songs.splice(position, 0, song);
 
-        if (skip && !wasEmpty) this.skip();
-        if (shuffle && !wasEmpty) this.shuffle(wasEmpty);
+        if (skip && !previouslyEmpty) this.skip();
+        if (shuffle && !previouslyEmpty) this.shuffle(previouslyEmpty);
 
-        if (wasEmpty) this.audioPlayer.play();
+        if (previouslyEmpty) this.audioPlayer.play();
 
         const preferences = userPreferencesDB.get(song.addedBy.id);
 
@@ -114,17 +113,16 @@ export class Queue {
     }
 
     public addList(songs: Song[], position?: number, shuffle?: boolean, skip?: boolean): void {
-        let wasEmpty = false;
-        if (!this.songs.length) wasEmpty = true;
+        const previouslyEmpty = !this.songs.length;
 
         songs.forEach(song => this.duration += song.duration);
         if (!position) this.songs.push(...songs);
         else this.songs.splice(position, 0, ...songs);
         
-        if (skip && !wasEmpty) this.skip();
-        if (shuffle) this.shuffle(wasEmpty);
+        if (skip && !previouslyEmpty) this.skip();
+        if (shuffle) this.shuffle(previouslyEmpty);
 
-        if (wasEmpty) this.audioPlayer.play();
+        if (previouslyEmpty) this.audioPlayer.play();
     }
 
     public setRepeatMode(mode: RepeatMode) {
