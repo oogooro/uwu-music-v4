@@ -20,7 +20,7 @@ import { userSettingsDB } from '../../database/userSettings';
 export default new SlashCommand({
     data: {
         name: 'play',
-        description: 'Dodaje lub szuka piosenek do playlisty',
+        description: 'Dodaje lub szuka piosenek do kolejki',
         dmPermission: false,
         options: [
             {
