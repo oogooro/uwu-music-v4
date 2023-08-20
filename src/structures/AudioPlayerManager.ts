@@ -11,7 +11,7 @@ import { SponsorBlock } from 'sponsorblock-api';
 import { SoundcloudSong } from './SoundcoludSong';
 import { PlayerEvent } from '../typings/playerEvents';
 import { SpotifySong } from './SpotifySong';
-import { userPreferencesDB } from '../database/userPreferences';
+import { userSettingsDB } from '../database/userSettings';
 
 const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
 
@@ -129,7 +129,7 @@ export class AudioPlayerManager {
 
         if (song instanceof YoutubeSong || song instanceof SpotifySong) {
             const ytSong = song instanceof YoutubeSong ? song : await song.getYoutubeEquivalent();
-            if (!seekTime && userPreferencesDB.get(song.addedBy.id).sponsorBlockEnabled) {
+            if (!seekTime && userSettingsDB.get(song.addedBy.id).sponsorBlockEnabled) {
                 this.playerEvents = [];
                 try {
                     const segments = await sponsorBlock.getSegments(ytSong.id, ['music_offtopic', 'sponsor']);

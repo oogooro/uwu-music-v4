@@ -5,7 +5,7 @@ import { logger, queues } from '..';
 import { RepeatMode } from '../typings/repeatMode';
 import { AudioPlayerManager } from './AudioPlayerManager';
 import { Song } from './Song';
-import { userPreferencesDB } from '../database/userPreferences';
+import { userSettingsDB } from '../database/userSettings';
 
 export class Queue {
     public audioPlayer: AudioPlayerManager
@@ -92,23 +92,23 @@ export class Queue {
 
         if (previouslyEmpty) this.audioPlayer.play();
 
-        const preferences = userPreferencesDB.get(song.addedBy.id);
+        const userSettings = userSettingsDB.get(song.addedBy.id);
 
-        if (preferences.keepHistory) {
-            preferences.lastAddedSongs.unshift({
+        if (userSettings.keepHistory) {
+            userSettings.lastAddedSongs.unshift({
                 title: song.title,
                 url: song.url,
             });
     
-            if (preferences.lastAddedSongs.length > 15) preferences.lastAddedSongs.pop();
+            if (userSettings.lastAddedSongs.length > 15) userSettings.lastAddedSongs.pop();
 
-            preferences.lastAddedSongs = preferences.lastAddedSongs.filter((value, index, self) => // dedupe array thanks https://stackoverflow.com/a/36744732
+            userSettings.lastAddedSongs = userSettings.lastAddedSongs.filter((value, index, self) => // dedupe array thanks https://stackoverflow.com/a/36744732
                 index === self.findIndex((t) => (
                     t.title === value.title && t.url === value.url
                 ))
             );
 
-            userPreferencesDB.set(song.addedBy.id, preferences);
+            userSettingsDB.set(song.addedBy.id, userSettings);
         }
     }
 

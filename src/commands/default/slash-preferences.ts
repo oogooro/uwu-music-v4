@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ComponentType, EmbedBuilder, InteractionEditReplyOptions, StringSelectMenuBuilder } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
-import { getDefaultUserPreferences, patchUserPreferences, userPreferencesDB } from '../../database/userPreferences';
+import { getDefaultUserSettings, patchUserSettings, userSettingsDB } from '../../database/userSettings';
 import config from '../../config';
 
 export default new SlashCommand({
@@ -9,9 +9,9 @@ export default new SlashCommand({
         description: 'Zmienia preferencje użytkownika',
     },
     run: async ({ interaction, logger, queue }) => {
-        let preferences = userPreferencesDB.get(interaction.user.id);
-        preferences ??= getDefaultUserPreferences(interaction.user.id);
-        patchUserPreferences(preferences, interaction.user.id);
+        let settings = userSettingsDB.get(interaction.user.id);
+        settings ??= getDefaultUserSettings(interaction.user.id);
+        patchUserSettings(settings, interaction.user.id);
 
         const update = (btnInteraction?: ButtonInteraction) => {
             const int = btnInteraction || interaction;
@@ -21,7 +21,7 @@ export default new SlashCommand({
                     new EmbedBuilder()
                         .setTitle('Preferencje')
                         .setColor(config.embedColor)
-                        .setDescription(`Historia piosenek ${preferences.keepHistory ? '✅' : '❌'}\nPomijanie segmentów ${preferences.sponsorBlockEnabled ? '✅' : '❌'}\n\nKliknij przyciski na dole, aby zmienić`),
+                        .setDescription(`Historia piosenek ${settings.keepHistory ? '✅' : '❌'}\nPomijanie segmentów ${settings.sponsorBlockEnabled ? '✅' : '❌'}\n\nKliknij przyciski na dole, aby zmienić`),
                 ],
                 components: [
                     new ActionRowBuilder<ButtonBuilder>()
@@ -29,11 +29,11 @@ export default new SlashCommand({
                             new ButtonBuilder()
                                 .setCustomId('historyToggle')
                                 .setLabel('Historia piosenek')
-                                .setStyle(preferences.keepHistory ? ButtonStyle.Success : ButtonStyle.Danger),
+                                .setStyle(settings.keepHistory ? ButtonStyle.Success : ButtonStyle.Danger),
                             new ButtonBuilder()
                                 .setCustomId('sponsorBlockToggle')
                                 .setLabel('Pomijanie segmentów')
-                                .setStyle(preferences.sponsorBlockEnabled ? ButtonStyle.Success : ButtonStyle.Danger),
+                                .setStyle(settings.sponsorBlockEnabled ? ButtonStyle.Success : ButtonStyle.Danger),
                             new ButtonBuilder()
                                 .setCustomId('cleanHistory')
                                 .setLabel('Wyczyść historię')
@@ -55,14 +55,14 @@ export default new SlashCommand({
         
         collector.on('collect', (btnInteraction) => {
             if (btnInteraction.customId === 'historyToggle') {
-                preferences.keepHistory = !preferences.keepHistory;
-                userPreferencesDB.set(btnInteraction.user.id, preferences);
+                settings.keepHistory = !settings.keepHistory;
+                userSettingsDB.set(btnInteraction.user.id, settings);
             } else if (btnInteraction.customId === 'sponsorBlockToggle') {
-                preferences.sponsorBlockEnabled = !preferences.sponsorBlockEnabled;
-                userPreferencesDB.set(btnInteraction.user.id, preferences);
+                settings.sponsorBlockEnabled = !settings.sponsorBlockEnabled;
+                userSettingsDB.set(btnInteraction.user.id, settings);
             } else if (btnInteraction.customId === 'cleanHistory') {
-                preferences.lastAddedSongs = [];
-                userPreferencesDB.set(btnInteraction.user.id, preferences);
+                settings.lastAddedSongs = [];
+                userSettingsDB.set(btnInteraction.user.id, settings);
             }
             update(btnInteraction);
         });
