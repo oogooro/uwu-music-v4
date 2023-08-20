@@ -5,7 +5,7 @@ import { logger, queues } from '..';
 import { RepeatMode } from '../typings/repeatMode';
 import { AudioPlayerManager } from './AudioPlayerManager';
 import { Song } from './Song';
-import { userSettingsDB } from '../database/userSettings';
+import { getDefaultUserSettings, patchUserSettings, userSettingsDB } from '../database/userSettings';
 
 export class Queue {
     public audioPlayer: AudioPlayerManager
@@ -89,10 +89,10 @@ export class Queue {
 
         if (skip && !previouslyEmpty) this.skip();
         if (shuffle && !previouslyEmpty) this.shuffle(previouslyEmpty);
-
-        if (previouslyEmpty) this.audioPlayer.play();
-
-        const userSettings = userSettingsDB.get(song.addedBy.id);
+        
+        let userSettings = userSettingsDB.get(song.addedBy.id);
+        userSettings ??= getDefaultUserSettings(song.addedBy.id);
+        patchUserSettings(userSettings, song.addedBy.id);
 
         if (userSettings.keepHistory) {
             userSettings.lastAddedSongs.unshift({
@@ -110,6 +110,8 @@ export class Queue {
 
             userSettingsDB.set(song.addedBy.id, userSettings);
         }
+
+        if (previouslyEmpty) this.audioPlayer.play();
     }
 
     public addList(songs: Song[], position?: number, shuffle?: boolean, skip?: boolean): void {
