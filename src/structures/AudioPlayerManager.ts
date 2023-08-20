@@ -17,7 +17,7 @@ const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
 
 export class AudioPlayerManager {
     private seekOffset = 0;
-    private timestampPoolingInterval: NodeJS.Timer;
+    private timestampPoolingInterval: NodeJS.Timeout;
     currentResource: AudioResource;
     guildId: string;
     player: AudioPlayer;
