@@ -15,7 +15,7 @@ import { SoundcloudSong } from '../../structures/SoundcoludSong';
 import youtubeSearch from "youtube-search";
 import _ from 'lodash';
 import { SpotifySong } from '../../structures/SpotifySong';
-import { userSettingsDB } from '../../database/userSettings';
+import { getDefaultUserSettings, patchUserSettings, userSettingsDB } from '../../database/userSettings';
 
 export default new SlashCommand({
     data: {
@@ -440,10 +440,12 @@ export default new SlashCommand({
     getAutocompletes: async ({ interaction, logger }) => {
         const query = interaction.options.getFocused();
         if (!query) {
-            const settings = userSettingsDB.get(interaction.user.id)
-            if (!settings.keepHistory) return interaction.respond([]).catch(err => logger.error(err));
+            let userSettings = userSettingsDB.get(interaction.user.id);
+            userSettings ??= getDefaultUserSettings(interaction.user.id);
+            patchUserSettings(userSettings, interaction.user.id);
+            if (!userSettings.keepHistory) return interaction.respond([]).catch(err => logger.error(err));
             const songs: ApplicationCommandOptionChoiceData<string>[] = [];
-            settings.lastAddedSongs.forEach(item => {
+            userSettings.lastAddedSongs.forEach(item => {
                 songs.push({
                     name: item.title,
                     value: item.url,
