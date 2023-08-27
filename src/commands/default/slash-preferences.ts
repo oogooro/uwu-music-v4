@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ComponentType, EmbedBuilder, InteractionEditReplyOptions, StringSelectMenuBuilder } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
-import { getDefaultUserSettings, patchUserSettings, userSettingsDB } from '../../database/userSettings';
+import { getUserSettings, userSettingsDB } from '../../database/userSettings';
 import config from '../../config';
 
 export default new SlashCommand({
@@ -9,9 +9,7 @@ export default new SlashCommand({
         description: 'Zmienia preferencje użytkownika',
     },
     run: async ({ interaction, logger, queue }) => {
-        let settings = userSettingsDB.get(interaction.user.id);
-        settings ??= getDefaultUserSettings(interaction.user.id);
-        patchUserSettings(settings, interaction.user.id);
+        const settings = getUserSettings(interaction.user.id);
 
         const update = (btnInteraction?: ButtonInteraction) => {
             const int = btnInteraction || interaction;

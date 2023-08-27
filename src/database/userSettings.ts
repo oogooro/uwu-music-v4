@@ -27,13 +27,15 @@ export const getDefaultUserSettings = (userId: Snowflake): UserSettings => {
     return defaultUserSettings;
 }
 
-export const patchUserSettings = (userSettings: UserSettings, userId: Snowflake): UserSettings => {
+export const getUserSettings = (userId: Snowflake): UserSettings => {
+    const userSettings = userSettingsDB.get(userId) ?? getDefaultUserSettings(userId);
+
     if (defaultUserSettings.version !== userSettings.version) {
         const settings: UserSettings = {
             ...defaultUserSettings,
             ...userSettings,
         }
-        
+
         userSettingsDB.set(userId, settings);
         return settings;
     } else return userSettings;
