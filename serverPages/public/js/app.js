@@ -149,6 +149,7 @@ const pageContents = {
             <option value="0">Playing</option>
             <option value="2">Listening</option>
             <option value="3">Watching</option>
+            <option value="4">Custom</option>
         </select>
         <label for="status-visible">Widoczny</label> <input type="checkbox" name="status-visible" id="status-visible">
     </p>

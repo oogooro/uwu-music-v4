@@ -74,7 +74,7 @@ interface Settings {
         data: [
             {
                 name: string;
-                type: ActivityType.Playing | ActivityType.Listening | ActivityType.Watching;
+                type: ActivityType.Playing | ActivityType.Listening | ActivityType.Watching | ActivityType.Custom;
             }
         ];
     };
