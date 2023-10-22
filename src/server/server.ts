@@ -57,6 +57,7 @@ app.get('/api/:endpoint/:options?', (req, res) => {
                     guilds: client.guilds.cache,
                     users: client.users.cache,
                     ENV: process.env.ENV,
+                    ready: client.isReady(),
                 });
             }
             break;

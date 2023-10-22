@@ -11,7 +11,6 @@ export default new SlashCommand({
         const publicCommandsArray: string[] = [];
         const privateCommandsArray: string[] = [];
         const globalCommandsArray: string[] = [];
-        const categoryArray: string[] = [];
 
         client.commands.commandsExecutable.forEach((value, key) => {
             if (value.dev) privateCommandsArray.push(`\`${key}\``);
@@ -20,15 +19,12 @@ export default new SlashCommand({
             commandArray.push(`\`${key}\``);
         });
 
-        client.commands.payload.categories.forEach((value, key) => categoryArray.push(`\`${value.manifest.displayName}\``));
-
         const content: string = 
 `**Komendy**
 > Wszystkie komendy: ${commandArray.join(', ')}
 > Publiczne komendy: ${publicCommandsArray.join(', ')}
 > Prywatne komendy: ${privateCommandsArray.join(', ')}
 > Globalne komendy: ${globalCommandsArray.join(', ')}
-> Kategorie: ${categoryArray.join(', ')}
 
 **Podsumowanie**
 > Ping ws: \`${client.ws.ping}ms\`

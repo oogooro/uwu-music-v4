@@ -1,6 +1,6 @@
 import { ApplicationCommandDataResolvable, Client, ClientEvents, ClientOptions, Collection, RestEvents } from 'discord.js';
 import { glob } from 'glob';
-import { BotCommand, CommandCategoryManifest, CommandManager } from '../typings/commandManager';
+import { Command, BotCommands } from '../typings/commandManager';
 import { DjsClientEvent } from './DjsClientEvent';
 import { logger } from '..';
 import { Agent } from 'undici';
@@ -9,9 +9,8 @@ import { botSettingsDB } from '../database/botSettings';
 import { DjsRestEvent } from './DjsRestEvent';
 
 export class ExtendedClient extends Client {
-    public commands: CommandManager = {
+    public commands: BotCommands = {
         payload: {
-            categories: new Collection(),
             allCommands: [],
             global: [],
         },
@@ -68,7 +67,6 @@ export class ExtendedClient extends Client {
     }
 
     private async init() {
-        const commandCategories: string[] = await glob(`${__dirname}/../commands/categories/*`.replace(/\\/g, '/'));
         const defaultCommands: string[] = await glob(`${__dirname}/../commands/default/*{.ts,.js}`.replace(/\\/g, '/'));
         const privateCommands: string[] = await glob(`${__dirname}/../commands/private/*{.ts,.js}`.replace(/\\/g, '/'));
 
@@ -78,8 +76,8 @@ export class ExtendedClient extends Client {
             color: 'blueBright',
         });
 
-        defaultCommands.forEach(async (defualtCommandPath: string) => {
-            const command: BotCommand = await this.importFile(defualtCommandPath);
+        defaultCommands.forEach(async (defaultCommandPath: string) => {
+            const command: Command = await this.importFile(defaultCommandPath);
 
             if (!command?.data || command.disabled) return;
             if (command.dev && process.env.ENV !== 'dev') return;
@@ -96,44 +94,13 @@ export class ExtendedClient extends Client {
         });
 
         privateCommands.forEach(async (privateCommandPath: string) => {
-            const command: BotCommand = await this.importFile(privateCommandPath);
+            const command: Command = await this.importFile(privateCommandPath);
 
             if (!command?.data || command.disabled) return;
             if (command.dev && process.env.ENV !== 'dev') return;
             command.private = true;
             this.commands.commandsExecutable.set(command.data.name, command);
             this.commands.payload.allCommands.push(command.data);
-        });
-
-        logger.log({
-            level: 'init',
-            message: `Found ${commandCategories.length} command categories`,
-            color: 'blueBright',
-        });
-
-        commandCategories.forEach(async (commandCategoryFolderPath: string) => {
-            const currentCategoryName = commandCategoryFolderPath.split('/').pop();
-            const commandCategoryFolderFiles: string[] = await glob(`${commandCategoryFolderPath}/*{.ts,.js}`);
-            const categoryManifest: CommandCategoryManifest = await this.importFile((await glob(`${commandCategoryFolderPath}/manifest.*`))[0]);
-
-            const category = this.commands.payload.categories.has(currentCategoryName) ?
-                this.commands.payload.categories.get(currentCategoryName) :
-                {
-                    manifest: categoryManifest,
-                    commands: [],
-                }
-
-            commandCategoryFolderFiles.forEach(async (commandPath) => {
-                const command: BotCommand = await this.importFile(commandPath);
-
-                if (!command?.data || command.disabled) return;
-                if (categoryManifest?.nsfw) command.nsfw = true;
-
-                category.commands.push(command.data);
-                this.commands.payload.categories.set(currentCategoryName, category);
-                this.commands.commandsExecutable.set(command.data.name, command);
-                this.commands.payload.allCommands.push(command.data);
-            });
         });
 
         const djsClientEventFiles: string[] = await glob(`${__dirname}/../events/discord.js-Client/*{.ts,.js}`.replace(/\\/g, '/'));
