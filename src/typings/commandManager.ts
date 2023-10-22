@@ -3,26 +3,12 @@ import { MessageCommandType } from './messageCommand';
 import { SlashCommandType } from './slashCommand';
 import { UserCommandType } from './userCommand';
 
-export interface CommandCategory {
-    manifest: CommandCategoryManifest;
-    commands: ApplicationCommandDataResolvable[];
-}
+export type Command = SlashCommandType | UserCommandType | MessageCommandType;
 
-export interface CommandCategoryManifest {
-    displayName: string;
-    description: string;
-    emoji: string;
-    hidden?: boolean;
-    nsfw?: boolean;
-}
-
-export type BotCommand = SlashCommandType | UserCommandType | MessageCommandType;
-
-export interface CommandManager {
+export interface BotCommands {
     payload: {
-        categories: Collection<string, CommandCategory>;
         allCommands: ApplicationCommandDataResolvable[];
         global: ApplicationCommandDataResolvable[];
     };
-    commandsExecutable: Collection<string, BotCommand>;
+    commandsExecutable: Collection<string, Command>;
 }

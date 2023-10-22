@@ -42,12 +42,11 @@ const pageFunctions = {
             };
         
             axios.get('/api/botInfo').then(({ data }) => {
-                if (data.ping > 0) botStatusInfoElement.innerHTML = '<span class="status-ready bold">Ready</span>'
+                if (data.ready) botStatusInfoElement.innerHTML = '<span class="status-ready bold">Ready</span>'
                 else botStatusInfoElement.innerHTML = '<span class="status-not-ready bold">Not ready</span>'
         
                 const content = `<span class='bold'>Komendy</span>
                     Wszystkie komendy: ${data.commands.allCommands.map(cmd => cmd.name).join(', ')}
-                    Kategorie: ${data.commands.categories.map(cat => cat.manifest.displayName).join(', ')}
             
                     <span class='bold'>Podsumowanie</span>
                     Ping ws: ${data.ping || '-1'}ms
