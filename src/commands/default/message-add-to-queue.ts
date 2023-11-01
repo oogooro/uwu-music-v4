@@ -19,6 +19,7 @@ export default new MessageCommand({
         dmPermission: false,
     },
     vcOnly: true,
+    global: true,
     run: async ({ interaction, logger }) => {
         const channel = (interaction.member as GuildMember).voice.channel;
         

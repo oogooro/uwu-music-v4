@@ -90,9 +90,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('buttonClick', (button) => {
-        if (button === 'global') client.registerCommandsGlobally(client.commands.payload.global).catch(err => logger.error(err));
+        if (button === 'global') client.registerGlobalCommands(client.commands.payload.global).catch(err => logger.error(err));
         else if (button === 'guild') client.registerCommands(client.commands.payload.allCommands, process.env.BOT_GUILD_ID, false).catch(err => logger.error(err));
-        else if (button === 'unrglobal') client.registerCommandsGlobally([]).catch(err => logger.error(err));
+        else if (button === 'unrglobal') client.registerGlobalCommands([]).catch(err => logger.error(err));
         else if (button === 'unrguild') client.registerCommands([], process.env.BOT_GUILD_ID, false).catch(err => logger.error(err));
         else logger.error(new Error('Unknown button'));
     });

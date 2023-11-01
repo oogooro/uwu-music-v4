@@ -11,6 +11,7 @@ export default new SlashCommand({
         dmPermission: false,
     },
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue, }) => {
         const [song] = queue.songs;
         

@@ -15,6 +15,7 @@ export default new SlashCommand({ //! THIS COMMAND IS DISABLED
     vcOnly: true,
     queueRequired: true,
     disabled: true, //! THIS COMMAND IS DISABLED
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         const interactionResponse = await interaction.deferReply().catch(err => { logger.error(err) });
         if (!interactionResponse) return;

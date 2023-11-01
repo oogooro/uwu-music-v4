@@ -12,6 +12,7 @@ export default new SlashCommand({
         dmPermission: false,
     },
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue, }) => {
         if (!queue.songs.length)
             return interaction.reply({ content: 'Kolejka jest pusta!', ephemeral: true, }).catch(err => logger.error(err));

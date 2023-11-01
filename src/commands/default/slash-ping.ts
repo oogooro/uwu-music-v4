@@ -7,6 +7,7 @@ export default new SlashCommand({
         name: 'ping',
         description: 'Pokazuje ping bota',
     },
+    global: true,
     run: async ({ interaction, logger }) => {
         interaction.reply({ content: `:ping_pong: **Ping!**\nWebsocket: ${client.ws.ping}ms\nInterakcje: ...`, fetchReply: true, }).then(async msg => {
             const channel = await client.channels.fetch(interaction.channelId) as TextBasedChannel;

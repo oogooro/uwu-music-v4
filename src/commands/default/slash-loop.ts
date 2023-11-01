@@ -22,6 +22,7 @@ export default new SlashCommand({
     },
     vcOnly: true,
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue, }) => {
         const mode = interaction.options.getString('sposób');
 

@@ -34,6 +34,7 @@ export default new SlashCommand({
     },
     vcOnly: true,
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         const songIndex = queue.songs.findIndex(s => s.title === interaction.options.getString('piosenka'));
 

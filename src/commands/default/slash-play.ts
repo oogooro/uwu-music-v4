@@ -58,6 +58,7 @@ export default new SlashCommand({
         ],
     },
     vcOnly: true,
+    global: true,
     run: async ({ interaction, logger }) => {
         const channel = (interaction.member as GuildMember).voice.channel;
         const query = interaction.options.getString('piosenka');

@@ -8,6 +8,7 @@ export default new SlashCommand({
     },
     vcOnly: true,
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         if (queue.paused) {
             queue.resume();

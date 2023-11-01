@@ -11,10 +11,7 @@ import Soundcloud from 'soundcloud.ts';
 Error.stackTraceLimit = 20;
 
 export const logger = new Logger(config.loggerOptions);
-export const client = new ExtendedClient(config.clientOptions);
 export const debugLogger = new Logger(config.debugLoggerOptions);
-export const soundcloud = new Soundcloud();
-
 export const queues: Collection<string, Queue> = new Collection();
 export const experimentalServers: Set<string> = new Set();
 
@@ -40,5 +37,7 @@ if (!process.env.BOT_GUILD_ID) {
 } else if (process.env.ENV === 'dev') {
     experimentalServers.add(process.env.BOT_GUILD_ID);
 }
+export const client = new ExtendedClient(config.clientOptions);
+export const soundcloud = new Soundcloud();
 
 client.start();

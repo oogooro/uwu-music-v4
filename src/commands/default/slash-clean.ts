@@ -16,6 +16,7 @@ export default new SlashCommand({
     },
     vcOnly: true,
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         const keepPlaying = interaction.options.getBoolean('zostaw-grającą');
 

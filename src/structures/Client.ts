@@ -1,12 +1,17 @@
-import { ApplicationCommandDataResolvable, Client, ClientEvents, ClientOptions, Collection, RestEvents } from 'discord.js';
-import { glob } from 'glob';
-import { Command, BotCommands } from '../typings/commandManager';
+import { ApplicationCommandDataResolvable, Client, ClientOptions, Collection } from 'discord.js';
+import { globSync } from 'glob';
+import { Command, BotCommands } from '../typings/Commands';
 import { DjsClientEvent } from './DjsClientEvent';
 import { logger } from '..';
 import { Agent } from 'undici';
 import { AutomatedInteractionType } from '../typings/automatedInteraction';
 import { botSettingsDB } from '../database/botSettings';
 import { DjsRestEvent } from './DjsRestEvent';
+import chalk from 'chalk';
+
+interface importedWithDefault<T> {
+    default: T;
+}
 
 export class ExtendedClient extends Client {
     public commands: BotCommands = {
@@ -27,11 +32,141 @@ export class ExtendedClient extends Client {
                 timeout: 30000,
             },
         }));
+
+        this.init();
+    }
+
+    private async init() {
+        const defaultCommands = globSync('./src/commands/default/*{.js,.ts}', { absolute: true, });
+        const devCommands = globSync('./src/commands/dev/*{.js,.ts}', { absolute: true, });
+        const disabledCommands: Command[] = [];
+
+        const djsClientEvents = globSync('./src/events/discord.js-client/*{.js,.ts}', { absolute: true, });
+        const djsRestEvents = globSync('./src/events/discord.js-rest/*{.js,.ts}', { absolute: true, });
+
+        const loadPromises: Promise<any>[] = [];
+
+        logger.log({
+            level: 'init',
+            message: `Found ${chalk.bold(defaultCommands.length)} default commands`,
+            color: 'blue',
+        });
+
+        logger.log({
+            level: 'init',
+            message: `Found ${chalk.bold(devCommands.length)} dev commands`,
+            color: 'blue',
+        });
+
+        logger.log({
+            level: 'init',
+            message: `Found ${chalk.bold(djsClientEvents.length)} Discord.js Client events`,
+            color: 'blue',
+        });
+
+        logger.log({
+            level: 'init',
+            message: `Found ${chalk.bold(djsRestEvents.length)} Discord.js REST events`,
+            color: 'blue',
+        });
+
+        const importCommandsPromises: Promise<importedWithDefault<Command>>[] = [];
+
+        defaultCommands.concat(devCommands).forEach(commandPath => {
+            const importPromise = import(commandPath);
+            importCommandsPromises.push(importPromise);
+            loadPromises.push(importPromise);
+        });
+
+        Promise.allSettled(importCommandsPromises).then(resoults => {
+            resoults.forEach(resoult => {
+                if (resoult.status === 'fulfilled') {
+                    const command = resoult.value.default;
+                    const commandName = command.data.name;
+
+                    logger.debug(`Loaded ${commandName}`);
+
+                    if (!command.disabled) {
+                        this.commands.commandsExecutable.set(commandName, command);
+                        this.commands.payload.allCommands.push(command.data);
+                        if (command.global) this.commands.payload.global.push(command.data);
+                    } else disabledCommands.push(command);
+                } else {
+                    logger.error(resoult.reason);
+                }
+            });
+        });
+
+        const importDjsClientEventsPromises: Promise<importedWithDefault<DjsClientEvent>>[] = [];
+
+        djsClientEvents.forEach(eventPath => {
+            const importPromise = import(eventPath)
+            importDjsClientEventsPromises.push(importPromise);
+            loadPromises.push(importPromise);
+        });
+
+        Promise.allSettled(importDjsClientEventsPromises).then(resoults => {
+            resoults.forEach(resoult => {
+                if (resoult.status === 'fulfilled') {
+                    const event = resoult.value.default;
+                    logger.debug(`Loaded ${event.name}`);
+
+                    if (event.runOnce) this.once(event.name, event.run);
+                    else this.on(event.name, event.run);
+                } else {
+                    logger.error(resoult.reason);
+                }
+            });
+        });
+
+        const importDjsRestEventsPromises: Promise<importedWithDefault<DjsRestEvent>>[] = [];
+
+        djsRestEvents.forEach(eventPath => {
+            const importPromise = import(eventPath)
+            importDjsRestEventsPromises.push(importPromise);
+            loadPromises.push(importPromise);
+        });
+
+        Promise.allSettled(importDjsRestEventsPromises).then(resoults => {
+            resoults.forEach(resoult => {
+                if (resoult.status === 'fulfilled') {
+                    const event = resoult.value.default;
+                    logger.debug(`Loaded ${event.name}`);
+
+                    if (event.runOnce) this.rest.once(event.name, event.run);
+                    else this.rest.on(event.name, event.run);
+                } else {
+                    logger.error(resoult.reason);
+                }
+            });
+        });
+
+        const loadedResoults = await Promise.allSettled(loadPromises);
+        let loadedSuccessfully = 0
+        let failedToLoad = 0
+
+        loadedResoults.forEach(resoult => {
+            if (resoult.status === 'fulfilled') loadedSuccessfully++;
+            else failedToLoad++;
+        });
+        
+        if (failedToLoad === 0) {
+            logger.log({
+                level: 'init',
+                message: `Successfully loaded all ${loadedSuccessfully} submodules`,
+                color: 'greenBright',
+            });
+        } else {
+            logger.log({
+                level: 'init',
+                message: `Failed to load ${failedToLoad} submodules`,
+                color: 'bgRedBright',
+            });
+        }
     }
 
     public start() {
         logger.debug('Starting client...');
-        this.init();
         this.login(process.env.ENV === 'prod' ? process.env.DISCORDBOT_TOKEN : process.env.DISCORDBOT_DEV_TOKEN);
         logger.debug('Client started');
     }
@@ -46,11 +181,11 @@ export class ExtendedClient extends Client {
         });
     }
 
-    public async registerCommandsGlobally(commands: ApplicationCommandDataResolvable[]) {
+    public async registerGlobalCommands(commands: ApplicationCommandDataResolvable[]) {
         return new Promise((resolve, reject) => {
             this.application.commands.set(commands)
                 .then(res => resolve(logger.log({ level: 'info', message: `Globally registered ${res.size} commands`, color: 'gray', })))
-                .catch(reject);
+                .catch(err => { logger.error(err) });
         });
     }
 
@@ -58,94 +193,7 @@ export class ExtendedClient extends Client {
         return new Promise(async (resolve, reject) => {
             (await this.guilds.fetch(guild)).commands.set(commands)
                 .then(res => resolve(logger.log({ level: 'info', message: `Registered ${res.size} commands to ${guild}`, silent, })))
-                .catch(reject);
-        });
-    }
-
-    private async importFile(filePath: string) {
-        return (await import(filePath).catch(err => logger.error(err)))?.default;
-    }
-
-    private async init() {
-        const defaultCommands: string[] = await glob(`${__dirname}/../commands/default/*{.ts,.js}`.replace(/\\/g, '/'));
-        const privateCommands: string[] = await glob(`${__dirname}/../commands/private/*{.ts,.js}`.replace(/\\/g, '/'));
-
-        logger.log({
-            level: 'init',
-            message: `Found ${defaultCommands.length} default commands`,
-            color: 'blueBright',
-        });
-
-        defaultCommands.forEach(async (defaultCommandPath: string) => {
-            const command: Command = await this.importFile(defaultCommandPath);
-
-            if (!command?.data || command.disabled) return;
-            if (command.dev && process.env.ENV !== 'dev') return;
-            command.global = true;
-            this.commands.commandsExecutable.set(command.data.name, command);
-            this.commands.payload.global.push(command.data);
-            this.commands.payload.allCommands.push(command.data);
-        });
-
-        logger.log({
-            level: 'init',
-            message: `Found ${privateCommands.length} private commands`,
-            color: 'blueBright',
-        });
-
-        privateCommands.forEach(async (privateCommandPath: string) => {
-            const command: Command = await this.importFile(privateCommandPath);
-
-            if (!command?.data || command.disabled) return;
-            if (command.dev && process.env.ENV !== 'dev') return;
-            command.private = true;
-            this.commands.commandsExecutable.set(command.data.name, command);
-            this.commands.payload.allCommands.push(command.data);
-        });
-
-        const djsClientEventFiles: string[] = await glob(`${__dirname}/../events/discord.js-Client/*{.ts,.js}`.replace(/\\/g, '/'));
-
-        logger.log({
-            level: 'init',
-            message: `Found ${djsClientEventFiles.length} Discord.js Client event files`,
-            color: 'blueBright',
-        });
-
-        djsClientEventFiles.forEach(async (eventPath: string) => {
-            const event: DjsClientEvent<keyof ClientEvents> = await this.importFile(eventPath);
-
-            if (!event?.name) return;
-            if (event.runOnce) this.once(event.name, event.run);
-            else this.on(event.name, event.run);
-        });
-
-        const djsRestEventFiles: string[] = await glob(`${__dirname}/../events/discord.js-Rest/*{.ts,.js}`.replace(/\\/g, '/'));
-
-        logger.log({
-            level: 'init',
-            message: `Found ${djsRestEventFiles.length} Discord.js Rest event files`,
-            color: 'blueBright',
-        });
-
-        djsRestEventFiles.forEach(async (eventPath: string) => {
-            const event: DjsRestEvent<keyof RestEvents> = await this.importFile(eventPath);
-
-            if (!event?.name) return;
-            if (event.runOnce) this.rest.once(event.name, event.run);
-            else this.rest.on(event.name, event.run);
-        });
-
-        const automatedInteractionFiles: string[] = await glob(`${__dirname}/../automated/*{.ts,.js}`.replace(/\\/g, '/'));
-
-        logger.log({
-            level: 'init',
-            message: `Found ${automatedInteractionFiles.length} automated interactions files`,
-            color: 'blueBright',
-        });
-
-        automatedInteractionFiles.forEach(async (automatedInteractionFilePath: string) => {
-            const automatedInteraction: AutomatedInteractionType = await this.importFile(automatedInteractionFilePath);
-            this.automatedInteractions.set(automatedInteraction.name, automatedInteraction);
+                .catch(err => { logger.error(err) });
         });
     }
 }

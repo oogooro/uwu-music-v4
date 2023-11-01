@@ -1,6 +1,6 @@
 import { RestEvents } from 'discord.js';
 
-export class DjsRestEvent<Key extends keyof RestEvents> {
+export class DjsRestEvent<Key extends keyof RestEvents = keyof RestEvents> {
     constructor(
         public name: Key,
         public run: (...args: RestEvents[Key]) => Promise<any>,
