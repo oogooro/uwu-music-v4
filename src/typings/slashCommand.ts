@@ -24,7 +24,7 @@ export type SlashCommandType = {
     nsfw?: boolean;
     vcOnly?: boolean;
     queueRequired?: boolean;
-    beta?: boolean;
+    experimental?: boolean;
     run: RunFunction;
     getAutocompletes?: RunFunctionAutocomplete;
 };
