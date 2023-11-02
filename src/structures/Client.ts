@@ -50,25 +50,25 @@ export class ExtendedClient extends Client {
         logger.log({
             level: 'init',
             message: `Found ${chalk.bold(defaultCommands.length)} default commands`,
-            color: 'blue',
+            color: 'blueBright',
         });
 
         logger.log({
             level: 'init',
             message: `Found ${chalk.bold(devCommands.length)} dev commands`,
-            color: 'blue',
+            color: 'blueBright',
         });
 
         logger.log({
             level: 'init',
             message: `Found ${chalk.bold(djsClientEvents.length)} Discord.js Client events`,
-            color: 'blue',
+            color: 'blueBright',
         });
 
         logger.log({
             level: 'init',
             message: `Found ${chalk.bold(djsRestEvents.length)} Discord.js REST events`,
-            color: 'blue',
+            color: 'blueBright',
         });
 
         const importCommandsPromises: Promise<importedWithDefault<Command>>[] = [];
