@@ -8,6 +8,7 @@ import { AutomatedInteractionType } from '../typings/automatedInteraction';
 import { botSettingsDB } from '../database/botSettings';
 import { DjsRestEvent } from './DjsRestEvent';
 import chalk from 'chalk';
+__dirname = __dirname.replace(/\\/g, '/');
 
 interface importedWithDefault<T> {
     default: T;
@@ -37,12 +38,12 @@ export class ExtendedClient extends Client {
     }
 
     private async init() {
-        const defaultCommands = globSync('./src/commands/default/*{.js,.ts}', { absolute: true, });
-        const devCommands = globSync('./src/commands/dev/*{.js,.ts}', { absolute: true, });
+        const defaultCommands = globSync(`${__dirname}/../commands/default/*{.js,.ts}`, { absolute: true, });
+        const devCommands = globSync(`${__dirname}/../commands/dev/*{.js,.ts}`, { absolute: true, });
         const disabledCommands: Command[] = [];
 
-        const djsClientEvents = globSync('./src/events/discord.js-client/*{.js,.ts}', { absolute: true, });
-        const djsRestEvents = globSync('./src/events/discord.js-rest/*{.js,.ts}', { absolute: true, });
+        const djsClientEvents = globSync(`${__dirname}/../events/discord.js-client/*{.js,.ts}`, { absolute: true, });
+        const djsRestEvents = globSync(`${__dirname}/../events/discord.js-rest/*{.js,.ts}`, { absolute: true, });
 
         const loadPromises: Promise<any>[] = [];
 
