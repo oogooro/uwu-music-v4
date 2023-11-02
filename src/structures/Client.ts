@@ -91,7 +91,10 @@ export class ExtendedClient extends Client {
                         this.commands.commandsExecutable.set(commandName, command);
                         this.commands.payload.allCommands.push(command.data);
                         if (command.global) this.commands.payload.global.push(command.data);
-                    } else disabledCommands.push(command);
+                    } else {
+                        disabledCommands.push(command);
+                        logger.debug(`${commandName} is disabled`);
+                    }
                 } else {
                     logger.error(resoult.reason);
                 }
@@ -162,6 +165,14 @@ export class ExtendedClient extends Client {
                 level: 'init',
                 message: `Failed to load ${failedToLoad} submodules`,
                 color: 'bgRedBright',
+            });
+        }
+
+        if (disabledCommands.length) {
+            logger.log({
+                level: 'init',
+                message: `${chalk.bold(disabledCommands.length)} commands are disabled`,
+                color: 'yellowBright',
             });
         }
     }
