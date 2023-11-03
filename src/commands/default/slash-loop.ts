@@ -1,5 +1,6 @@
 import { ApplicationCommandOptionType } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
+import { RepeatMode } from '../../structures/Queue';
 
 export default new SlashCommand({
     data: {
@@ -11,9 +12,9 @@ export default new SlashCommand({
                 name: 'sposób',
                 description: 'Sposób zapętlania',
                 choices: [
-                    { name: '🔂 Piosenka', value: '1', },
-                    { name: '🔁 Kolejka', value: '2', },
-                    { name: '🚫 Wyłączone', value: '0', },
+                    { name: '🔂 Piosenka', value: 'song', },
+                    { name: '🔁 Kolejka', value: 'queue', },
+                    { name: '🚫 Wyłączone', value: 'disabled', },
                 ],
                 required: true,
             },
@@ -24,15 +25,15 @@ export default new SlashCommand({
     queueRequired: true,
     global: true,
     run: async ({ interaction, logger, queue, }) => {
-        const mode = interaction.options.getString('sposób');
+        const mode = interaction.options.getString('sposób') as RepeatMode;
 
-        queue.setRepeatMode(parseInt(mode));
+        queue.setRepeatMode(mode);
 
-        const strings = [
-            '🚫 Wyłączono zapętlanie!',
-            '🔂 Włączono zapętlanie piosenki!',
-            '🔁 Włączono zapętlanie kolejki',
-        ]
+        const strings = {
+            'disabled': '🚫 Wyłączono zapętlanie!',
+            'song': '🔂 Włączono zapętlanie piosenki!',
+            'queue': '🔁 Włączono zapętlanie kolejki',
+        }
 
         interaction.reply({ content: strings[mode], })
             .catch(err => logger.error(err));

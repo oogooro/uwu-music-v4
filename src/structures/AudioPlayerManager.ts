@@ -1,7 +1,6 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, getVoiceConnection, StreamType } from '@discordjs/voice';
 import { stream } from 'play-dl';
 import { experimentalServers, logger, queues, soundcloud } from '..';
-import { RepeatMode } from '../typings/repeatMode';
 import { songToDisplayString } from '../utils';
 import { YoutubeSong } from './YoutubeSong';
 import { FFmpeg } from 'prism-media'; 
@@ -51,8 +50,8 @@ export class AudioPlayerManager {
             }
 
             if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
-                if (queue.repeatMode === RepeatMode.Disabled) queue.previousSongs.push(queue.songs.shift());
-                else if (queue.repeatMode === RepeatMode.Queue) queue.songs.push(queue.songs.shift());
+                if (queue.repeatMode === 'disabled') queue.previousSongs.push(queue.songs.shift());
+                else if (queue.repeatMode === 'queue') queue.songs.push(queue.songs.shift());
 
                 if (queue.songs.length) this.play();
                 else queue.playing = false;

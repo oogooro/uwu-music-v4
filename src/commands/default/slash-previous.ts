@@ -3,7 +3,6 @@ import { SlashCommand } from '../../structures/SlashCommand';
 import { Song } from '../../structures/Song';
 import { SoundcloudSong } from '../../structures/SoundcoludSong';
 import { YoutubeSong } from '../../structures/YoutubeSong';
-import { RepeatMode } from '../../typings/repeatMode';
 import { createSongEmbed } from '../../utils';
 
 export default new SlashCommand({ //! THIS COMMAND IS DISABLED
@@ -22,7 +21,7 @@ export default new SlashCommand({ //! THIS COMMAND IS DISABLED
 
         let song: Song;
 
-        if (queue.repeatMode !== RepeatMode.Queue) {
+        if (queue.repeatMode !== 'queue') {
             song = queue.previousSongs.pop();
             
             if (!song) return interaction.editReply({ content: 'Brak piosenki do zagrania!' }).catch(err => logger.error(err));

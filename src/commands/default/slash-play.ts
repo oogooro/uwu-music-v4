@@ -1,7 +1,7 @@
 import { ApplicationCommandOptionChoiceData, ApplicationCommandOptionType, ButtonInteraction, ButtonStyle, ComponentType, GuildMember, hyperlink, InteractionEditReplyOptions } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
 import { experimentalServers, queues, soundcloud } from '../..';
-import { Queue } from '../../structures/Queue';
+import { Queue, RepeatMode } from '../../structures/Queue';
 import config from '../../config';
 import { createSongEmbed, searchSongs, songToDisplayString } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
@@ -50,9 +50,9 @@ export default new SlashCommand({
                 name: 'zapętlanie',
                 description: 'W jaki sposób zapętlać',
                 choices: [
-                    { name: '🔂 Piosenka', value: '1', },
-                    { name: '🔁 Kolejka', value: '2', },
-                    { name: '🚫 Wyłączone', value: '0', },
+                    { name: '🔂 Piosenka', value: 'song', },
+                    { name: '🔁 Kolejka', value: 'queue', },
+                    { name: '🚫 Wyłączone', value: 'disabled', },
                 ],
             },
         ],
@@ -65,7 +65,7 @@ export default new SlashCommand({
         const next = interaction.options.getBoolean('następna');
         const skip = interaction.options.getBoolean('pominąć');
         const shuffle = interaction.options.getBoolean('przetasować');
-        const loopMode = interaction.options.getString('zapętlanie');
+        const loopMode = interaction.options.getString('zapętlanie') as RepeatMode;
 
         const additionalInfo: string[] = [];
 
@@ -74,9 +74,9 @@ export default new SlashCommand({
         if (shuffle) additionalInfo.push('🔀 Przetasowano kolejkę');
         if (loopMode) {
             switch(loopMode) {
-                case '0': additionalInfo.push('🚫 Wyłączono zapętlanie'); break;
-                case '1': additionalInfo.push('🔂 Włączono zapętlanie piosenki'); break;
-                case '2': additionalInfo.push('🔁 Włączono zapętlanie kolejki'); break;
+                case 'disabled': additionalInfo.push('🚫 Wyłączono zapętlanie'); break;
+                case 'song': additionalInfo.push('🔂 Włączono zapętlanie piosenki'); break;
+                case 'queue': additionalInfo.push('🔁 Włączono zapętlanie kolejki'); break;
             }
         }
         
@@ -85,7 +85,7 @@ export default new SlashCommand({
         
         const queue = queues.has(interaction.guildId) ? queues.get(interaction.guildId) : new Queue(interaction.guild, interaction.channel);
 
-        if (loopMode) queue.setRepeatMode(parseInt(loopMode));
+        if (loopMode) queue.setRepeatMode(loopMode);
 
         if (!queue.connected) {
             try {

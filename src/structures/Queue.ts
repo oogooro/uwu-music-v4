@@ -2,10 +2,11 @@ import { entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatu
 import { Guild, TextBasedChannel, VoiceBasedChannel } from 'discord.js';
 import { shuffle } from 'lodash';
 import { logger, queues } from '..';
-import { RepeatMode } from '../typings/repeatMode';
 import { AudioPlayerManager } from './AudioPlayerManager';
 import { Song } from './Song';
 import { getUserSettings, userSettingsDB } from '../database/userSettings';
+
+export type RepeatMode = 'disabled' | 'song' | 'queue';
 
 export class Queue {
     public audioPlayer: AudioPlayerManager
@@ -13,7 +14,7 @@ export class Queue {
     public connected = false;
     public duration: number = 0;
     public songs: Song[] = [];
-    public repeatMode: RepeatMode = RepeatMode.Disabled;
+    public repeatMode: RepeatMode = 'disabled';
     public previousSongs: Song[] = [];
     public paused = false;
     public playing = false;
@@ -141,10 +142,10 @@ export class Queue {
 
         if (!to) {
             skipped = this.songs.shift();
-            if (!force && (this.repeatMode === RepeatMode.Queue)) this.songs.push(skipped);
+            if (!force && (this.repeatMode === 'queue')) this.songs.push(skipped);
         } else {
             const skippedSongs = this.songs.splice(0, to);
-            if (!force && (this.repeatMode === RepeatMode.Queue)) this.songs.push(...skippedSongs);
+            if (!force && (this.repeatMode === 'queue')) this.songs.push(...skippedSongs);
             [skipped] = this.songs;
         }
 
