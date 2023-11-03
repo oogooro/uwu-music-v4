@@ -1,4 +1,4 @@
-import { APIEmbed, CommandInteraction, escapeMarkdown, hyperlink, Interaction, InteractionType, User } from 'discord.js';
+import { APIEmbed, escapeMarkdown, hyperlink, Interaction, InteractionType, User } from 'discord.js';
 import ytsr, { Video } from 'ytsr';
 import { soundcloud } from '.';
 import config from './config';
@@ -6,13 +6,6 @@ import { Song } from './structures/Song';
 import { SoundcloudSong } from './structures/SoundcoludSong';
 import { YoutubeSong } from './structures/YoutubeSong';
 import { SpotifySong } from './structures/SpotifySong';
-
-let customIdIncrement = 0;
-export function generateCustomId(text: string, interaction: CommandInteraction): string {
-    if (customIdIncrement >= 100) customIdIncrement = 0;
-    customIdIncrement++;
-    return `${interaction.commandName}-${text}-${interaction.user.id}-${interaction.createdTimestamp}-${customIdIncrement}`.toUpperCase();
-}
 
 export function generateInteractionTrace(interaction: Interaction): string {
     const place = interaction.guildId || 'DM';
