@@ -79,10 +79,10 @@ export class ExtendedClient extends Client {
             loadPromises.push(importPromise);
         });
 
-        Promise.allSettled(importCommandsPromises).then(resoults => {
-            resoults.forEach(resoult => {
-                if (resoult.status === 'fulfilled') {
-                    const command = resoult.value.default;
+        Promise.allSettled(importCommandsPromises).then(results => {
+            results.forEach(result => {
+                if (result.status === 'fulfilled') {
+                    const command = result.value.default;
                     const commandName = command.data.name;
 
                     logger.debug(`Loaded ${commandName}`);
@@ -96,7 +96,7 @@ export class ExtendedClient extends Client {
                         logger.debug(`${commandName} is disabled`);
                     }
                 } else {
-                    logger.error(resoult.reason);
+                    logger.error(result.reason);
                 }
             });
         });
@@ -109,16 +109,16 @@ export class ExtendedClient extends Client {
             loadPromises.push(importPromise);
         });
 
-        Promise.allSettled(importDjsClientEventsPromises).then(resoults => {
-            resoults.forEach(resoult => {
-                if (resoult.status === 'fulfilled') {
-                    const event = resoult.value.default;
+        Promise.allSettled(importDjsClientEventsPromises).then(results => {
+            results.forEach(result => {
+                if (result.status === 'fulfilled') {
+                    const event = result.value.default;
                     logger.debug(`Loaded ${event.name}`);
 
                     if (event.runOnce) this.once(event.name, event.run);
                     else this.on(event.name, event.run);
                 } else {
-                    logger.error(resoult.reason);
+                    logger.error(result.reason);
                 }
             });
         });
@@ -131,16 +131,16 @@ export class ExtendedClient extends Client {
             loadPromises.push(importPromise);
         });
 
-        Promise.allSettled(importDjsRestEventsPromises).then(resoults => {
-            resoults.forEach(resoult => {
-                if (resoult.status === 'fulfilled') {
-                    const event = resoult.value.default;
+        Promise.allSettled(importDjsRestEventsPromises).then(results => {
+            results.forEach(result => {
+                if (result.status === 'fulfilled') {
+                    const event = result.value.default;
                     logger.debug(`Loaded ${event.name}`);
 
                     if (event.runOnce) this.rest.once(event.name, event.run);
                     else this.rest.on(event.name, event.run);
                 } else {
-                    logger.error(resoult.reason);
+                    logger.error(result.reason);
                 }
             });
         });
@@ -149,8 +149,8 @@ export class ExtendedClient extends Client {
         let loadedSuccessfully = 0
         let failedToLoad = 0
 
-        loadedResoults.forEach(resoult => {
-            if (resoult.status === 'fulfilled') loadedSuccessfully++;
+        loadedResoults.forEach(result => {
+            if (result.status === 'fulfilled') loadedSuccessfully++;
             else failedToLoad++;
         });
         
