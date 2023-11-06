@@ -145,11 +145,11 @@ export class ExtendedClient extends Client {
             });
         });
 
-        const loadedResoults = await Promise.allSettled(loadPromises);
+        const loadedResults = await Promise.allSettled(loadPromises);
         let loadedSuccessfully = 0
         let failedToLoad = 0
 
-        loadedResoults.forEach(result => {
+        loadedResults.forEach(result => {
             if (result.status === 'fulfilled') loadedSuccessfully++;
             else failedToLoad++;
         });
