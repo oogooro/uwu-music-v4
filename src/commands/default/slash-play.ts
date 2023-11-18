@@ -15,7 +15,7 @@ import { SoundcloudSong } from '../../structures/SoundcoludSong';
 import youtubeSearch from "youtube-search";
 import _ from 'lodash';
 import { SpotifySong } from '../../structures/SpotifySong';
-import { getDefaultUserSettings, getUserSettings, userSettingsDB } from '../../database/userSettings';
+import { getUserSettings } from '../../database/userSettings';
 
 export default new SlashCommand({
     data: {
@@ -111,7 +111,18 @@ export default new SlashCommand({
 
             const song = new YoutubeSong(videoInfo.video_details, interaction.user);
 
-            queue.addSong(song, next ? 1 : 0, shuffle, skip);
+            queue.add(
+                [song],
+                {
+                    title: song.title,
+                    url: song.url,
+                },
+                {
+                    position: next ? 1 : 0,
+                    shuffle,
+                    skip,
+                },
+            );
 
             const replyContent: InteractionEditReplyOptions = {
                 embeds: createSongEmbed('Dodano', song, additionalInfo),
@@ -125,7 +136,18 @@ export default new SlashCommand({
 
             const songs: YoutubeSong[] = playlistInfo.items.map(item => new YoutubeSong({ title: item.title, duration: item.durationSec, url: item.url, }, interaction.user));
 
-            queue.addList(songs, next ? 1 : 0, shuffle, skip);
+            queue.add(
+                songs,
+                {
+                    title: playlistInfo.title,
+                    url: playlistInfo.url,
+                },
+                {
+                    position: next ? 1 : 0,
+                    shuffle,
+                    skip,
+                },
+            );
 
             const replyContent: InteractionEditReplyOptions = {
                 embeds: [{
@@ -148,7 +170,18 @@ export default new SlashCommand({
 
                 const songs: SoundcloudSong[] = playlistInfo.tracks.map(track => new SoundcloudSong(track, interaction.user));
 
-                queue.addList(songs, next ? 1 : 0, shuffle, skip);
+                queue.add(
+                    songs,
+                    {
+                        title: playlistInfo.title,
+                        url: playlistInfo.permalink_url,
+                    },
+                    {
+                        position: next ? 1 : 0,
+                        shuffle,
+                        skip,
+                    },
+                );
 
                 const replyContent: InteractionEditReplyOptions = {
                     embeds: [{
@@ -167,7 +200,18 @@ export default new SlashCommand({
                 if (!songInfo) return interaction.editReply({ content: 'Nie udało się znaleźć piosenki!' }).catch(err => logger.error(err));
                 const song = new SoundcloudSong(songInfo, interaction.user);
     
-                queue.addSong(song, next ? 1 : 0, shuffle, skip);
+                queue.add(
+                    [song],
+                    {
+                        title: song.title,
+                        url: song.url,
+                    },
+                    {
+                        position: next ? 1 : 0,
+                        shuffle,
+                        skip,
+                    },
+                );
     
                 const replyContent: InteractionEditReplyOptions = {
                     embeds: createSongEmbed('Dodano', song, additionalInfo),
@@ -185,7 +229,18 @@ export default new SlashCommand({
             if (spotData.type === 'track') {
                 const song = new SpotifySong(spotData as SpotifyTrack, interaction.user)
 
-                queue.addSong(song, next ? 1 : 0, shuffle, skip);
+                queue.add(
+                    [song],
+                    {
+                        title: song.title,
+                        url: song.url,
+                    },
+                    {
+                        position: next ? 1 : 0,
+                        shuffle,
+                        skip,
+                    },
+                );
 
                 const replyContent: InteractionEditReplyOptions = {
                     embeds: createSongEmbed('Dodano', song, additionalInfo),
@@ -198,7 +253,18 @@ export default new SlashCommand({
 
                 const songs = tracks.map(track => new SpotifySong(track, interaction.user));
 
-                queue.addList(songs, next ? 1 : 0, shuffle, skip);
+                queue.add(
+                    songs,
+                    {
+                        title: spotAlbumOrPlaylist.name,
+                        url: spotAlbumOrPlaylist.url,
+                    },
+                    {
+                        position: next ? 1 : 0,
+                        shuffle,
+                        skip,
+                    },
+                );
 
                 const replyContent: InteractionEditReplyOptions = {
                     embeds: [{
@@ -236,7 +302,18 @@ export default new SlashCommand({
                     title,
                 }, interaction.user);
 
-                queue.addSong(song, next ? 1 : 0, shuffle, skip);
+                queue.add(
+                    [song],
+                    {
+                        title: song.title,
+                        url: song.url,
+                    },
+                    {
+                        position: next ? 1 : 0,
+                        shuffle,
+                        skip,
+                    },
+                );
 
                 const replyContent: InteractionEditReplyOptions = {
                     embeds: [{
@@ -413,7 +490,18 @@ export default new SlashCommand({
                         if ((selectedSong instanceof YoutubeSong || selectedSong instanceof SoundcloudSong) && selectedSong.partial)
                             btnInteraction.editReply({ content: 'Nie udało się dostać informacji o piosence!' }).catch(err => logger.error(err));
                         else {
-                            queue.addSong(selectedSong, next ? 1 : 0, shuffle, skip);
+                            queue.add(
+                                [selectedSong],
+                                {
+                                    title: selectedSong.title,
+                                    url: selectedSong.url,
+                                },
+                                {
+                                    position: next ? 1 : 0,
+                                    shuffle,
+                                    skip,
+                                },
+                            );
 
                             const replyContent: InteractionEditReplyOptions = {
                                 embeds: createSongEmbed('Dodano', selectedSong, additionalInfo),

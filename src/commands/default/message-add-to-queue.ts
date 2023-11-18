@@ -60,7 +60,7 @@ export default new MessageCommand({
                 return interaction.editReply({ content: 'Nie można dodać nadchodzących piosenek!', }).catch(err => logger.error(err));
             
             const song = new YoutubeSong(videoInfo.video_details, interaction.user);
-            queue.addSong(song);
+            queue.add([song], { title: song.title, url: song.url, });
 
             const replyContent: InteractionEditReplyOptions = {
                 embeds: createSongEmbed('Dodano', song),
@@ -75,7 +75,7 @@ export default new MessageCommand({
 
             const songs: YoutubeSong[] = playlistInfo.items.map(item => new YoutubeSong({ title: item.title, duration: item.durationSec, url: item.url, }, interaction.user));
 
-            queue.addList(songs);
+            queue.add(songs, { title: playlistInfo.title, url: playlistInfo.url, });
 
             const replyContent: InteractionEditReplyOptions = {
                 embeds: [{
@@ -98,7 +98,7 @@ export default new MessageCommand({
 
                 const songs: SoundcloudSong[] = playlistInfo.tracks.map(track => new SoundcloudSong(track, interaction.user));
 
-                queue.addList(songs);
+                queue.add(songs, { title: playlistInfo.title, url: playlistInfo.permalink_url, });
 
                 const replyContent: InteractionEditReplyOptions = {
                     embeds: [{
@@ -117,7 +117,7 @@ export default new MessageCommand({
                 if (!songInfo) return interaction.editReply({ content: 'Nie udało się znaleźć piosenki!' }).catch(err => logger.error(err));
                 const song = new SoundcloudSong(songInfo, interaction.user);
 
-                queue.addSong(song);
+                queue.add([song], { title: song.title, url: song.url, });
 
                 const replyContent: InteractionEditReplyOptions = {
                     embeds: createSongEmbed('Dodano', song),

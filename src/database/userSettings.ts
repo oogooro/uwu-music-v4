@@ -1,13 +1,13 @@
 import Enmap from 'enmap';
 import { Snowflake } from 'discord.js';
 
-export interface LastAddedItem {
+export interface Item {
     title: string;
     url: string;
 }
 
 export interface UserSettings {
-    lastAddedSongs: LastAddedItem[];
+    lastAddedSongs: Item[];
     keepHistory: boolean;
     sponsorBlockEnabled: boolean;
     version: number;
