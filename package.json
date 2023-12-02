@@ -17,10 +17,10 @@
   "license": "MIT",
   "dependencies": {
     "@discordjs/opus": "0.9.0",
-    "@discordjs/voice": "^0.16.0",
+    "@discordjs/voice": "^0.16.1",
     "bufferutil": "^4.0.8",
     "chalk": "^4.1.2",
-    "discord.js": "^14.13",
+    "discord.js": "^14.14",
     "dotenv": "^16.3.1",
     "enmap": "5.9.8",
     "erlpack": "github:discord/erlpack",
@@ -28,7 +28,7 @@
     "glob": "^10.3.10",
     "log4uwu": "^0.4.1",
     "moment": "^2.29.4",
-    "music-metadata": "^7.13.0",
+    "music-metadata": "^7.14.0",
     "play-dl": "^1.9.7",
     "socket.io": "^4.7.2",
     "sodium-native": "^4.0.4",
@@ -42,11 +42,11 @@
     "zlib-sync": "^0.1.9"
   },
   "devDependencies": {
-    "@types/express": "^4.17.20",
-    "@types/lodash": "^4.14.200",
+    "@types/express": "^4.17.21",
+    "@types/lodash": "^4.14.202",
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.2"
   }
 }
