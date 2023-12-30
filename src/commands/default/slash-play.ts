@@ -12,10 +12,10 @@ import axios from 'axios';
 import { parseStream } from 'music-metadata';
 import { Song } from '../../structures/Song';
 import { SoundcloudSong } from '../../structures/SoundcoludSong';
-import youtubeSearch from "youtube-search";
 import _ from 'lodash';
 import { SpotifySong } from '../../structures/SpotifySong';
 import { getUserSettings } from '../../database/userSettings';
+import searchYoutube, { ItemKindVideo, parseSearch } from '@oogooro/search-yt';
 
 export default new SlashCommand({
     data: {
@@ -561,17 +561,25 @@ export default new SlashCommand({
 
             return interaction.respond([{ name: spotData.name.slice(0, 100), value: spotData.url, }]).catch(err => { logger.error(err) });
         } else {
-            if (process.env.ENV === 'dev' && !experimentalServers.has(interaction.guildId)) return interaction.respond([]).catch(err => logger.error(err));
+            if (process.env.ENV === 'dev' && !experimentalServers.has(interaction.guildId) || !process.env.YOUTUBE_KEY) return interaction.respond([]).catch(err => logger.error(err));
             const startTime = performance.now();
-    
-            const search = await youtubeSearch(query, { key: process.env.YOUTUBE_KEY, }).catch(err => { logger.error(err) });
+
+            const search = await searchYoutube({ query, key: process.env.YOUTUBE_KEY }).catch(err => { logger.error(err) });
             if (!search) return interaction.respond([]).catch(err => logger.error(err));
             
-            search.results = search.results.filter(({ kind }) => kind === 'youtube#video' || kind === 'youtube#playlist').slice(0, 25);
-            interaction.respond(search.results.map(result => { return { name: _.unescape(result.title.slice(0, 100)), value: result.link, }; } )).catch(err => logger.error(err));
-            
+            search.items = search.items.filter(item => item.id.kind === 'youtube#video' || item.id.kind === 'youtube#playlist').slice(0, 25);
+
+            const parsedSearch = parseSearch(search);
+
+            interaction.respond(parsedSearch.map(result => {
+                return {
+                    name: _.unescape(result.snippet.title.slice(0, 100)),
+                    value: result.url,
+                }
+            }));
+                
             const endTime = performance.now();
-            logger.debug(`Youtube search autocomplete took ${((endTime - startTime) / 1000).toFixed(2)}s; Found ${search.results.length} results`);
+            logger.debug(`Youtube search autocomplete took ${((endTime - startTime) / 1000).toFixed(2)}s; Found ${search.items.length} results`);
         }
     },
 });
