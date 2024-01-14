@@ -1,6 +1,6 @@
 import { ApplicationCommandDataResolvable, Client, ClientOptions, Collection } from 'discord.js';
 import { globSync } from 'glob';
-import { Command, BotCommands } from '../typings/Commands';
+import { Command, BotCommands } from '../typings/botCommands';
 import { DjsClientEvent } from './DjsClientEvent';
 import { logger } from '..';
 import { Agent } from 'undici';
