@@ -50,11 +50,12 @@ export class AudioPlayerManager {
             }
 
             if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
-                if (queue.repeatMode === 'disabled') queue.previousSongs.push(queue.songs.shift());
-                else if (queue.repeatMode === 'queue') queue.songs.push(queue.songs.shift());
-
-                if (queue.songs.length) this.play();
-                else queue.playing = false;
+                if (queue.songs.length) {
+                    if (queue.repeatMode === 'disabled') queue.previousSongs.push(queue.songs.shift());
+                    else if (queue.repeatMode === 'queue') queue.songs.push(queue.songs.shift());
+    
+                    if (queue.songs.length) this.play();
+                } else queue.playing = false;
             }
         });
 
