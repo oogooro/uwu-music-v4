@@ -1,4 +1,4 @@
-import { APIEmbed, escapeMarkdown, hyperlink, Interaction, InteractionType, Message, User } from 'discord.js';
+import { ActionRowBuilder, APIEmbed, ButtonBuilder, ComponentType, escapeMarkdown, hyperlink, Interaction, InteractionResponse, InteractionType, Message, StringSelectMenuBuilder, User } from 'discord.js';
 import ytsr, { Video } from 'ytsr';
 import { logger, soundcloud } from '.';
 import config from './config';
@@ -267,4 +267,25 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
         return null;
     }
 
+}
+
+export const disableComponents = async (interactionResponse: InteractionResponse): Promise<void> => {
+    const message = await interactionResponse.fetch().catch(err => { logger.error(err); });
+    if (!message) return;
+
+    const disabledRows = message.components.reduce((a: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[], row) => {
+        const components = row.toJSON().components.reduce((a: (ButtonBuilder | StringSelectMenuBuilder)[], component) => {
+            let builder: (ButtonBuilder | StringSelectMenuBuilder) = (component.type === ComponentType.Button) ? ButtonBuilder.from(component) : StringSelectMenuBuilder.from(component);
+            builder.setDisabled(true);
+            a.push(builder);
+            return a;
+        }, []);
+        const disabledRow = (components[0].data.type === ComponentType.Button) ?
+            new ActionRowBuilder<ButtonBuilder>().addComponents(components as ButtonBuilder[]) :
+            new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(components as StringSelectMenuBuilder[]);
+        a.push(disabledRow);
+        return a;
+    }, []);
+
+    interactionResponse.edit({ components: disabledRows, }).catch(err => logger.error(err));
 }
