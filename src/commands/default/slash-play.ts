@@ -395,25 +395,10 @@ export default new SlashCommand({
             });
             return interaction.respond(songs);
         }
-
-        if (ytdl.validateURL(query)) {
-            const info: ytdl.videoInfo | void = await ytdl.getBasicInfo(query).catch(err => { logger.error(err) });
-            if (!info) return interaction.respond([]).catch(err => logger.error(err));
-
-            return interaction.respond([{ name: info.videoDetails.title.slice(0, 100), value: info.videoDetails.video_url, }]).catch(err => { logger.error(err) });
-        } else if (ytpl.validateID(query)) {
-            const info: ytpl.Result | void = await ytpl(query).catch(err => { logger.error(err) });
-            if (!info) return interaction.respond([]).catch(err => logger.error(err));
-
-            return interaction.respond([{ name: info.title.slice(0, 100), value: info.url, }]).catch(err => { logger.error(err) });
-        } else if (query.startsWith('https://open.spotify.com/')) {
-            if (!experimentalServers.has(interaction.guildId)) return interaction.respond([]);
-            if (play.is_expired()) await play.refreshToken();
-
-            const spotData = await play.spotify(query).catch(err => { logger.error(err) });
-            if (!spotData) return interaction.respond([]);
-
-            return interaction.respond([{ name: spotData.name.slice(0, 100), value: spotData.url, }]).catch(err => { logger.error(err) });
+        const resolved = await resolveSong(query).catch(err => { logger.error(err); });
+            
+        if (resolved) {
+            return interaction.respond([{ name: `${resolved.source}: ${resolved.title}`.slice(0, 100), value: resolved.url, }]).catch(err => { logger.error(err) });
         } else {
             if (process.env.ENV === 'dev' && !experimentalServers.has(interaction.guildId) || !process.env.YOUTUBE_KEY) return interaction.respond([]).catch(err => logger.error(err));
             const startTime = performance.now();
