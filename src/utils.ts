@@ -143,6 +143,7 @@ interface PlayableItemYoutubeSong {
     title: string;
     url: string;
     data: YouTubeVideo;
+    source: 'YouTube';
 }
 
 interface PlayableItemYoutubePlaylist {
@@ -151,6 +152,7 @@ interface PlayableItemYoutubePlaylist {
     url: string;
     data: SongData[];
     thumbnailUrl: string;
+    source: 'YouTube';
 }
 
 interface PlayableItemSoundcloudTrack {
@@ -158,6 +160,7 @@ interface PlayableItemSoundcloudTrack {
     title: string;
     url: string;
     data: SoundcloudTrackV2;
+    source: 'SoundCloud';
 }
 
 interface PlayableItemSoundcloudPlaylist {
@@ -166,6 +169,7 @@ interface PlayableItemSoundcloudPlaylist {
     url: string;
     data: SoundcloudTrackV2[];
     thumbnailUrl: string;
+    source: 'SoundCloud';
 }
 
 interface PlayableItemSpotifySong {
@@ -173,6 +177,7 @@ interface PlayableItemSpotifySong {
     title: string;
     url: string;
     data: SpotifyTrack;
+    source: 'Spotify';
 }
 
 interface PlayableItemSpotifyPlaylist {
@@ -181,6 +186,7 @@ interface PlayableItemSpotifyPlaylist {
     url: string;
     data: SpotifyTrack[];
     thumbnailUrl: string;
+    source: 'Spotify';
 }
 
 type PlayableItem = PlayableItemYoutubeSong |
@@ -199,6 +205,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
             type: 'youtubeSong',
             title: info.video_details.title,
             data: info.video_details,
+            source: 'YouTube',
             url,
         }
     } else if (ytpl.validateID(url)) { // YouTube playlist
@@ -211,6 +218,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
             title: playlistInfo.title,
             data: playlistInfo.items.map(item => { return { url: item.url, title: item.title, duration: item.durationSec, } }),
             thumbnailUrl: playlistInfo.bestThumbnail.url,
+            source: 'YouTube',
             url,
         }
     } else if (url.startsWith('https://soundcloud.com/')) { // SoundCloud
@@ -224,6 +232,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
                 title: playlistInfo.title,
                 data: playlistInfo.tracks,
                 thumbnailUrl: playlistInfo.artwork_url,
+                source: 'SoundCloud',
                 url,
             }
         } else { // SoundCloud track
@@ -234,6 +243,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
                 type: 'soundcloudTrack',
                 title: songInfo.title,
                 data: songInfo,
+                source: 'SoundCloud',
                 url,
             }
         }
@@ -248,6 +258,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
                 type: 'spotifySong',
                 title: spotData.name,
                 data: spotData as SpotifyTrack,
+                source: 'Spotify',
                 url,
             }
         } else {
@@ -259,6 +270,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
                 title: spotAlbumOrPlaylist.name,
                 data: tracks,
                 thumbnailUrl: spotAlbumOrPlaylist.thumbnail.url,
+                source: 'Spotify',
                 url,
             }
         }
