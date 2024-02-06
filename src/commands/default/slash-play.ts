@@ -360,7 +360,11 @@ export default new SlashCommand({
             interaction.editReply({ embeds: createSongEmbed('Dodano', song, additionalInfo), }).catch(err => logger.error(err));
         } else if (resolved.type === 'spotifyPlaylist') {
             const songs = resolved.data.map(song => new SpotifySong(song, interaction.user));
-            queue.add(songs, resolved);
+            queue.add(songs, resolved, {
+                position: next ? 1 : 0,
+                shuffle,
+                skip,
+            },);
 
             interaction.editReply({
                 embeds: [{
