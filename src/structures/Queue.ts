@@ -103,7 +103,7 @@ export class Queue {
         const userSettings = getUserSettings(userId);
 
         if (userSettings.keepHistory) {
-            userSettings.lastAddedSongs.unshift(origin);
+            userSettings.lastAddedSongs.unshift({ title: origin.title, url: origin.url });
 
             if (userSettings.lastAddedSongs.length > 15) userSettings.lastAddedSongs.pop();
 
