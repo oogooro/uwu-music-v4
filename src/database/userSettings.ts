@@ -7,19 +7,21 @@ export interface Item {
 }
 
 export interface UserSettings {
+    version: number;
     lastAddedSongs: Item[];
     keepHistory: boolean;
     sponsorBlockEnabled: boolean;
-    version: number;
+    favorites: Item[];
 }
 
 export const userSettingsDB: Enmap<Snowflake, UserSettings> = new Enmap({ name: 'usersettings', });
 
 const defaultUserSettings: UserSettings = {
+    version: 2,
     lastAddedSongs: [],
     keepHistory: true,
     sponsorBlockEnabled: true,
-    version: 1,
+    favorites: [],
 }
 
 export const getDefaultUserSettings = (userId: Snowflake): UserSettings => {

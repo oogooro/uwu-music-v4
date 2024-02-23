@@ -18,12 +18,12 @@ export function generateInteractionTrace(interaction: Interaction): string {
     else if (interaction.type === InteractionType.MessageComponent || interaction.type === InteractionType.ModalSubmit) return `${place}/${interaction.user.id}/${interaction.customId}`;
 }
 
-export function songToDisplayString(song: Song, short: boolean = false): string {
+export function songToDisplayString(song: Song, short: boolean = false, skipAddedBy = false): string {
     song.title = song.title.replace(/([\uE000-\uF8FF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDDFF])/g, ''); // strip emojis because they fuck things up
     let displayString = `${hyperlink(escape(trimString(song.title, 53)), song.url, song.title.length >= 53 ? escape(song.title) : null)}`;
 
     if (short) return displayString;
-    else return `${displayString} - \`${song.formatedDuration}\`\n(dodane przez <@${song.addedBy.id}>)`;
+    else return `${displayString} - \`${song.formatedDuration}\`${!skipAddedBy ? `\n(dodane przez <@${song.addedBy.id}>)` : ''}`;
 }
 
 export function formatTimeDisplay(totalSeconds: number): string {
@@ -60,13 +60,26 @@ export function escape(s: string): string {
         .replaceAll(']', '］');
 }
 
-export function createSongEmbed(title: string, song: Song, additionalInfo?: string[]): APIEmbed[] {
+export function createSongEmbed(title: string, song: Song, additionalInfo?: string[], skipAddedBy = false): APIEmbed[] {
     const embed: APIEmbed[] = [{
         title: title,
         thumbnail: {
             url: song instanceof YoutubeSong || song instanceof SoundcloudSong || song instanceof SpotifySong ? song.thumbnail : null,
         },
-        description: songToDisplayString(song) + (additionalInfo?.length ? '\n\n' + additionalInfo.join('\n') : ''),
+        description: songToDisplayString(song, false, skipAddedBy) + (additionalInfo?.length ? '\n\n' + additionalInfo.join('\n') : ''),
+        color: config.embedColor,
+    }]
+
+    return embed;
+}
+
+export function createPlaylistEmbed(title: string, playlist: PlayableItemYoutubePlaylist | PlayableItemSoundcloudPlaylist | PlayableItemSpotifyPlaylist, addedBy?: User, additionalInfo: string[] = []): APIEmbed[] {
+    const embed: APIEmbed[] = [{
+        title: title,
+        thumbnail: {
+            url: playlist.thumbnailUrl ?? null,
+        },
+        description: `${playlist.data.length} piosenek z ${hyperlink(playlist.title, playlist.url)}${addedBy ? `\n(dodane przez ${addedBy.toString()})` : ''}` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
         color: config.embedColor,
     }]
 
@@ -282,7 +295,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
 }
 
 export const disableComponents = async (interactionResponse: InteractionResponse): Promise<void> => {
-    const message = await interactionResponse.fetch().catch(err => { logger.error(err); });
+    const message = await interactionResponse.fetch().catch(err => {});
     if (!message) return;
 
     const disabledRows = message.components.reduce((a: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[], row) => {
