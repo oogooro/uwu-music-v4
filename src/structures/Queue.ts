@@ -137,9 +137,9 @@ export class Queue {
             skipped = this.songs.shift();
             if (!force && (this.repeatMode === 'queue')) this.songs.push(skipped);
         } else {
+            [skipped] = this.songs;
             const skippedSongs = this.songs.splice(0, to);
             if (!force && (this.repeatMode === 'queue')) this.songs.push(...skippedSongs);
-            [skipped] = this.songs;
         }
 
         this.recalculateDuration();
@@ -174,6 +174,7 @@ export class Queue {
     }
 
     public clean(): void {
+        this.previousSongs.push(this.songs[0]);
         this.songs = [];
         this.stop();
     }
