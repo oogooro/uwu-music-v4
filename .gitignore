@@ -7,3 +7,4 @@ data
 bin/*
 src/auth.ts
 .data
+desktop.ini

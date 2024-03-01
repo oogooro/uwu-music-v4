@@ -3,7 +3,6 @@ import { client, queues } from '../..';
 import { SlashCommand } from '../../structures/SlashCommand';
 import config from '../../config';
 import { songToDisplayString } from '../../utils';
-import { RepeatMode } from '../../typings/repeatMode';
 
 export default new SlashCommand({
     data: {
@@ -12,6 +11,7 @@ export default new SlashCommand({
         dmPermission: false,
     },
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue, }) => {
         if (!queue.songs.length)
             return interaction.reply({ content: 'Kolejka jest pusta!', ephemeral: true, }).catch(err => logger.error(err));
@@ -45,17 +45,15 @@ export default new SlashCommand({
 
             let pauseEmoji: string = queue.paused ? ' :pause_button:' : '';
 
-            let loopEmoji: string;
+            let loopEmoji = '';
             switch (queue.repeatMode) {
-                case RepeatMode.Disabled:
+                case 'disabled':
                     loopEmoji = '';
                     break;
-
-                case RepeatMode.Queue:
+                case 'queue':
                     loopEmoji = ' 🔁';
                     break;
-
-                case RepeatMode.Song:
+                case 'song':
                     loopEmoji = ' 🔂';
                     break;
             }

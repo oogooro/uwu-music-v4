@@ -3,6 +3,7 @@ import config from '../../config';
 import { formatTimeDisplay, songToDisplayString } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
 import { SoundcloudSong } from '../../structures/SoundcoludSong';
+import { SpotifySong } from '../../structures/SpotifySong';
 
 export default new SlashCommand({
     data: {
@@ -11,6 +12,7 @@ export default new SlashCommand({
         dmPermission: false,
     },
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue, }) => {
         const [song] = queue.songs;
         
@@ -59,7 +61,7 @@ export default new SlashCommand({
                 title: 'Teraz gra',
                 description: `${songToDisplayString(song)}\n\n\`${formatTimeDisplay(queue.audioPlayer.getCurrentDuration())} / ${song.formatedDuration} ${progressString}\``,
                 thumbnail: {
-                    url: (song instanceof YoutubeSong || song instanceof SoundcloudSong ? song.thumbnail : null),
+                    url: (song instanceof YoutubeSong || song instanceof SoundcloudSong || song instanceof SpotifySong ? song.thumbnail : null),
                 },
                 color: config.embedColor,
                 footer: {

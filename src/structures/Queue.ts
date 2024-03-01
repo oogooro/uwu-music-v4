@@ -2,10 +2,16 @@ import { entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatu
 import { Guild, TextBasedChannel, VoiceBasedChannel } from 'discord.js';
 import { shuffle } from 'lodash';
 import { logger, queues } from '..';
-import { RepeatMode } from '../typings/repeatMode';
 import { AudioPlayerManager } from './AudioPlayerManager';
 import { Song } from './Song';
-import { getUserSettings, userSettingsDB } from '../database/userSettings';
+import { getUserSettings, Item, userSettingsDB } from '../database/userSettings';
+
+export type RepeatMode = 'disabled' | 'song' | 'queue';
+export type AddOptions = {
+    position?: number,
+    skip?: boolean,
+    shuffle?: boolean,
+}
 
 export class Queue {
     public audioPlayer: AudioPlayerManager
@@ -13,7 +19,7 @@ export class Queue {
     public connected = false;
     public duration: number = 0;
     public songs: Song[] = [];
-    public repeatMode: RepeatMode = RepeatMode.Disabled;
+    public repeatMode: RepeatMode = 'disabled';
     public previousSongs: Song[] = [];
     public paused = false;
     public playing = false;
@@ -80,24 +86,25 @@ export class Queue {
         });
     }
 
-    public addSong(song: Song, position?: number, shuffle?: boolean, skip?: boolean): void {
+    public add(songs: Song[], origin: Item, options: AddOptions = {}) {
         const previouslyEmpty = !this.songs.length;
 
-        this.duration += song.duration;
-        if (!position) this.songs.push(song);
-        else this.songs.splice(position, 0, song);
+        const { position, shuffle, skip, } = options;
+
+        songs.forEach(song => this.duration += song.duration);
+        if (!position) this.songs.push(...songs);
+        else this.songs.splice(position, 0, ...songs);
 
         if (skip && !previouslyEmpty) this.skip();
-        if (shuffle && !previouslyEmpty) this.shuffle(previouslyEmpty);
-        
-        const userSettings = getUserSettings(song.addedBy.id);
+        if (shuffle) this.shuffle(previouslyEmpty);
+
+        const userId = songs[0].addedBy.id;
+
+        const userSettings = getUserSettings(userId);
 
         if (userSettings.keepHistory) {
-            userSettings.lastAddedSongs.unshift({
-                title: song.title,
-                url: song.url,
-            });
-    
+            userSettings.lastAddedSongs.unshift({ title: origin.title, url: origin.url });
+
             if (userSettings.lastAddedSongs.length > 15) userSettings.lastAddedSongs.pop();
 
             userSettings.lastAddedSongs = userSettings.lastAddedSongs.filter((value, index, self) => // dedupe array thanks https://stackoverflow.com/a/36744732
@@ -106,21 +113,8 @@ export class Queue {
                 ))
             );
 
-            userSettingsDB.set(song.addedBy.id, userSettings);
+            userSettingsDB.set(userId, userSettings);
         }
-
-        if (previouslyEmpty) this.audioPlayer.play();
-    }
-
-    public addList(songs: Song[], position?: number, shuffle?: boolean, skip?: boolean): void {
-        const previouslyEmpty = !this.songs.length;
-
-        songs.forEach(song => this.duration += song.duration);
-        if (!position) this.songs.push(...songs);
-        else this.songs.splice(position, 0, ...songs);
-        
-        if (skip && !previouslyEmpty) this.skip();
-        if (shuffle) this.shuffle(previouslyEmpty);
 
         if (previouslyEmpty) this.audioPlayer.play();
     }
@@ -141,11 +135,11 @@ export class Queue {
 
         if (!to) {
             skipped = this.songs.shift();
-            if (!force && (this.repeatMode === RepeatMode.Queue)) this.songs.push(skipped);
+            if (!force && (this.repeatMode === 'queue')) this.songs.push(skipped);
         } else {
-            const skippedSongs = this.songs.splice(0, to);
-            if (!force && (this.repeatMode === RepeatMode.Queue)) this.songs.push(...skippedSongs);
             [skipped] = this.songs;
+            const skippedSongs = this.songs.splice(0, to);
+            if (!force && (this.repeatMode === 'queue')) this.songs.push(...skippedSongs);
         }
 
         this.recalculateDuration();
@@ -180,6 +174,7 @@ export class Queue {
     }
 
     public clean(): void {
+        this.previousSongs.push(this.songs[0]);
         this.songs = [];
         this.stop();
     }

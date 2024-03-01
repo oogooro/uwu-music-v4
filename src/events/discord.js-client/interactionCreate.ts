@@ -9,7 +9,7 @@ import { UserCommandType } from '../../typings/userCommand';
 import { MessageCommandType } from '../../typings/messageCommand';
 
 export default new DjsClientEvent('interactionCreate', async interaction => {
-    const { devs, online, } = botSettingsDB.get(process.env.ENV);
+    const { devs, online } = botSettingsDB.get(process.env.ENV);
     if (!online && !devs.includes(interaction.user.id)) return;
 
     const trace = generateInteractionTrace(interaction);
@@ -20,18 +20,18 @@ export default new DjsClientEvent('interactionCreate', async interaction => {
 
             const { commandName } = interaction;
             const command = client.commands.commandsExecutable.get(commandName) as SlashCommandType;
-            if (!command) return interaction.reply({ content: `tej komendy już nie ma nie używaj jej pls`, ephemeral: true }).catch(err => loggerThread.error(err));
+            if (!command) return interaction.reply({ content: 'Nie można znaleźć komendy!', ephemeral: true }).catch(err => loggerThread.error(err));
 
             if (command.dev && !devs.includes(interaction.user.id))
-                return interaction.reply({ content: `Ta komenda jest przeznaczona tylko dla devów nie używaj jej pls`, ephemeral: true }).catch(err => loggerThread.error(err));
+                return interaction.reply({ content: 'Tylko developerzy mogą używać tej komendy!', ephemeral: true }).catch(err => loggerThread.error(err));
             if (command.nsfw) {
                 if ('nsfw' in interaction.channel && !interaction.channel.nsfw)
-                    return interaction.reply({ content: `Można używać NSFW tylko na kanałach oznaczonych jako NSFW!`, ephemeral: true }).catch(err => loggerThread.error(err));
+                    return interaction.reply({ content: 'Tą komendę można używać tylko na kanałach NSFW!', ephemeral: true }).catch(err => loggerThread.error(err));
                 else if (interaction.channel.isThread() && !interaction.channel.parent.nsfw)
-                    return interaction.reply({ content: `Można używać NSFW tylko na kanałach oznaczonych jako NSFW!`, ephemeral: true }).catch(err => loggerThread.error(err));
+                    return interaction.reply({ content: 'Tą komendę można używać tylko w wątkach NSFW!', ephemeral: true }).catch(err => loggerThread.error(err));
             }
             if (command.vcOnly && !interaction.inCachedGuild())
-                return interaction.reply({ content: 'Tej komendy możesz użyć tylko na serwerach!', ephemeral: true, }).catch(err => logger.error(err));
+                return interaction.reply({ content: 'Tej komendy można używać tylko na serwerach!', ephemeral: true, }).catch(err => logger.error(err));
 
             if (command.vcOnly && !(interaction.member as GuildMember).voice.channel)
                 return interaction.reply({ content: 'Musisz być na kanale głosowym, aby użyć tej komendy!', ephemeral: true, }).catch(err => logger.error(err));
@@ -51,10 +51,10 @@ export default new DjsClientEvent('interactionCreate', async interaction => {
 
             const { commandName } = interaction;
             const command = client.commands.commandsExecutable.get(commandName) as MessageCommandType;
-            if (!command) return interaction.reply({ content: `tej komendy już nie ma nie używaj jej pls`, ephemeral: true }).catch(err => loggerThread.error(err));
+            if (!command) return interaction.reply({ content: 'Nie można znaleźć komendy!', ephemeral: true }).catch(err => loggerThread.error(err));
 
             if (command.vcOnly && !interaction.inCachedGuild())
-                return interaction.reply({ content: 'Tej komendy możesz użyć tylko na serwerach!', ephemeral: true, }).catch(err => logger.error(err));
+                return interaction.reply({ content: 'Tej komendy można używać tylko na serwerach!', ephemeral: true, }).catch(err => logger.error(err));
 
             if (command.vcOnly && !(interaction.member as GuildMember).voice.channel)
                 return interaction.reply({ content: 'Musisz być na kanale głosowym, aby użyć tej komendy!', ephemeral: true, }).catch(err => logger.error(err));
@@ -74,10 +74,10 @@ export default new DjsClientEvent('interactionCreate', async interaction => {
 
             const { commandName } = interaction;
             const command = client.commands.commandsExecutable.get(commandName) as UserCommandType;
-            if (!command) return interaction.reply({ content: `tej komendy już nie ma nie używaj jej pls`, ephemeral: true }).catch(err => loggerThread.error(err));
+            if (!command) return interaction.reply({ content: 'Nie można znaleźć komendy!', ephemeral: true }).catch(err => loggerThread.error(err));
 
             if (command.vcOnly && !interaction.inCachedGuild())
-                return interaction.reply({ content: 'Tej komendy możesz użyć tylko na serwerach!', ephemeral: true, }).catch(err => logger.error(err));
+                return interaction.reply({ content: 'Tej komendy można używać tylko na serwerach!', ephemeral: true, }).catch(err => logger.error(err));
 
             if (command.vcOnly && !(interaction.member as GuildMember).voice.channel)
                 return interaction.reply({ content: 'Musisz być na kanale głosowym, aby użyć tej komendy!', ephemeral: true, }).catch(err => logger.error(err));

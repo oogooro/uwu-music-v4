@@ -8,6 +8,7 @@ export default new SlashCommand({
     },
     vcOnly: true,
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         queue.shuffle();
         interaction.reply({ content: '🔀 Przetasowano piosenki!', }).catch(err => logger.error(err));

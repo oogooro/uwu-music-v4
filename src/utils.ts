@@ -1,18 +1,16 @@
-import { APIEmbed, CommandInteraction, escapeMarkdown, hyperlink, Interaction, InteractionType, User } from 'discord.js';
+import { ActionRowBuilder, APIEmbed, ButtonBuilder, ComponentType, escapeMarkdown, hyperlink, Interaction, InteractionResponse, InteractionType, Message, StringSelectMenuBuilder, User } from 'discord.js';
 import ytsr, { Video } from 'ytsr';
-import { soundcloud } from '.';
+import { logger, soundcloud } from '.';
 import config from './config';
 import { Song } from './structures/Song';
 import { SoundcloudSong } from './structures/SoundcoludSong';
 import { YoutubeSong } from './structures/YoutubeSong';
 import { SpotifySong } from './structures/SpotifySong';
-
-let customIdIncrement = 0;
-export function generateCustomId(text: string, interaction: CommandInteraction): string {
-    if (customIdIncrement >= 100) customIdIncrement = 0;
-    customIdIncrement++;
-    return `${interaction.commandName}-${text}-${interaction.user.id}-${interaction.createdTimestamp}-${customIdIncrement}`.toUpperCase();
-}
+import ytdl from 'ytdl-core';
+import ytpl from 'ytpl';
+import play, { SpotifyAlbum, SpotifyPlaylist, SpotifyTrack, video_basic_info, YouTubeVideo } from 'play-dl';
+import { SoundcloudTrackV2 } from 'soundcloud.ts';
+import { SongData } from './typings/song';
 
 export function generateInteractionTrace(interaction: Interaction): string {
     const place = interaction.guildId || 'DM';
@@ -126,4 +124,180 @@ export async function searchSongs(query: string, user: User): Promise<searchResu
     } catch (err) {
         throw err;
     }
+}
+
+export const getUrlsFromMessage = (message: Message): string[] => {
+    const urlRe = /(\b(https?):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+
+    const urlsFound: string[] = [
+        ...(message.content.match(urlRe) ?? []),
+        ...(message.embeds[0]?.url?.match(urlRe) ?? []),
+        ...(message.embeds[0]?.description?.match(urlRe) ?? []),
+    ]
+
+    return [...new Set(urlsFound)]; // dedupe
+}
+
+interface PlayableItemYoutubeSong {
+    type: 'youtubeSong';
+    title: string;
+    url: string;
+    data: YouTubeVideo;
+    source: 'YouTube';
+}
+
+interface PlayableItemYoutubePlaylist {
+    type: 'youtubePlaylist';
+    title: string;
+    url: string;
+    data: SongData[];
+    thumbnailUrl: string;
+    source: 'YouTube';
+}
+
+interface PlayableItemSoundcloudTrack {
+    type: 'soundcloudTrack';
+    title: string;
+    url: string;
+    data: SoundcloudTrackV2;
+    source: 'SoundCloud';
+}
+
+interface PlayableItemSoundcloudPlaylist {
+    type: 'soundcloudPlaylist';
+    title: string;
+    url: string;
+    data: SoundcloudTrackV2[];
+    thumbnailUrl: string;
+    source: 'SoundCloud';
+}
+
+interface PlayableItemSpotifySong {
+    type: 'spotifySong';
+    title: string;
+    url: string;
+    data: SpotifyTrack;
+    source: 'Spotify';
+}
+
+interface PlayableItemSpotifyPlaylist {
+    type: 'spotifyPlaylist';
+    title: string;
+    url: string;
+    data: SpotifyTrack[];
+    thumbnailUrl: string;
+    source: 'Spotify';
+}
+
+type PlayableItem = PlayableItemYoutubeSong |
+                    PlayableItemYoutubePlaylist |
+                    PlayableItemSoundcloudTrack |
+                    PlayableItemSoundcloudPlaylist |
+                    PlayableItemSpotifySong | 
+                    PlayableItemSpotifyPlaylist;
+
+export const resolveSong = async (url: string): Promise<PlayableItem | null> => {
+    if (ytdl.validateURL(url)) { // YouTube video
+        const info = await video_basic_info(url).catch(err => { logger.error(err); });
+        if (!info) return null;
+
+        return {
+            type: 'youtubeSong',
+            title: info.video_details.title,
+            data: info.video_details,
+            source: 'YouTube',
+            url,
+        }
+    } else if (ytpl.validateID(url)) { // YouTube playlist
+        const playlistInfo = await ytpl(url, { limit: Infinity, }).catch(err => { logger.error(err) });
+        if (!playlistInfo) return null;
+        if (!playlistInfo.items.length) return null;
+
+        return {
+            type: 'youtubePlaylist',
+            title: playlistInfo.title,
+            data: playlistInfo.items.map(item => { return { url: item.url, title: item.title, duration: item.durationSec, } }),
+            thumbnailUrl: playlistInfo.bestThumbnail.url,
+            source: 'YouTube',
+            url,
+        }
+    } else if (url.startsWith('https://soundcloud.com/')) { // SoundCloud
+        if (url.startsWith('https://soundcloud.com/playlist') || url.match(/https:\/\/soundcloud\.com\/\S*sets\/\S*/g)) { // SoundCloud playlist or set
+            const playlistInfo = await soundcloud.playlists.getV2(url).catch(err => { logger.error(err) });
+            if (!playlistInfo) return null;
+            if (!playlistInfo.tracks.length) return null;
+
+            return {
+                type: 'soundcloudPlaylist',
+                title: playlistInfo.title,
+                data: playlistInfo.tracks,
+                thumbnailUrl: playlistInfo.artwork_url,
+                source: 'SoundCloud',
+                url,
+            }
+        } else { // SoundCloud track
+            const songInfo = await soundcloud.tracks.getV2(url).catch(err => { logger.error(err) });
+            if (!songInfo) return null;
+
+            return {
+                type: 'soundcloudTrack',
+                title: songInfo.title,
+                data: songInfo,
+                source: 'SoundCloud',
+                url,
+            }
+        }
+    } else if (url.startsWith('https://open.spotify.com/')) {
+        if (play.is_expired()) await play.refreshToken();
+
+        const spotData = await play.spotify(url).catch(err => { logger.error(err) });
+        if (!spotData) return null;
+
+        if (spotData.type === 'track') {
+            return {
+                type: 'spotifySong',
+                title: spotData.name,
+                data: spotData as SpotifyTrack,
+                source: 'Spotify',
+                url,
+            }
+        } else {
+            const spotAlbumOrPlaylist = (spotData as SpotifyAlbum | SpotifyPlaylist);
+            const tracks = await spotAlbumOrPlaylist.all_tracks();
+
+            return {
+                type: 'spotifyPlaylist',
+                title: spotAlbumOrPlaylist.name,
+                data: tracks,
+                thumbnailUrl: spotAlbumOrPlaylist.thumbnail.url,
+                source: 'Spotify',
+                url,
+            }
+        }
+
+    } else {
+        return null;
+    }
+
+}
+
+export const disableComponents = async (interactionResponse: InteractionResponse): Promise<void> => {
+    const message = await interactionResponse.fetch().catch(err => { logger.error(err); });
+    if (!message) return;
+
+    const disabledRows = message.components.reduce((a: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[], row) => {
+        const components = row.toJSON().components.reduce((a: (ButtonBuilder | StringSelectMenuBuilder)[], component) => {
+            let builder: (ButtonBuilder | StringSelectMenuBuilder) = (component.type === ComponentType.Button) ? ButtonBuilder.from(component) : StringSelectMenuBuilder.from(component);
+            builder.setDisabled(true);
+            a.push(builder);
+            return a;
+        }, []);
+        const disabledRow = (components[0].data.type === ComponentType.Button) ?
+            new ActionRowBuilder<ButtonBuilder>().addComponents(components as ButtonBuilder[]) :
+            new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(components as StringSelectMenuBuilder[]);
+        a.push(disabledRow);
+        return a;
+    }, []);
+
+    interactionResponse.edit({ components: disabledRows, }).catch(err => logger.error(err));
 }

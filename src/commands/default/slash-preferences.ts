@@ -8,6 +8,7 @@ export default new SlashCommand({
         name: 'preferences',
         description: 'Zmienia preferencje użytkownika',
     },
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         const settings = getUserSettings(interaction.user.id);
 

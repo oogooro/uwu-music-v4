@@ -19,6 +19,7 @@ export default new SlashCommand({
     },
     vcOnly: true,
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue, }) => {
         if (!queue.songs.length) return interaction.reply({ content: 'Kolejka jest pusta!', ephemeral: true, }).catch(err => logger.error(err));
 

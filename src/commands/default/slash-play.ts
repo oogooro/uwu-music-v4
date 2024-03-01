@@ -1,21 +1,19 @@
 import { ApplicationCommandOptionChoiceData, ApplicationCommandOptionType, ButtonInteraction, ButtonStyle, ComponentType, GuildMember, hyperlink, InteractionEditReplyOptions } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
-import { experimentalServers, queues, soundcloud } from '../..';
-import { Queue } from '../../structures/Queue';
+import { experimentalServers, queues } from '../..';
+import { Queue, RepeatMode } from '../../structures/Queue';
 import config from '../../config';
-import { createSongEmbed, searchSongs, songToDisplayString } from '../../utils';
+import { createSongEmbed, resolveSong, searchSongs } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
 import ytdl from 'ytdl-core';
 import ytpl from 'ytpl';
-import play, { SpotifyAlbum, SpotifyPlaylist, SpotifyTrack, video_basic_info } from 'play-dl';
-import axios from 'axios';
-import { parseStream } from 'music-metadata';
+import play from 'play-dl';
 import { Song } from '../../structures/Song';
 import { SoundcloudSong } from '../../structures/SoundcoludSong';
-import youtubeSearch from "youtube-search";
 import _ from 'lodash';
 import { SpotifySong } from '../../structures/SpotifySong';
-import { getDefaultUserSettings, getUserSettings, userSettingsDB } from '../../database/userSettings';
+import { getUserSettings } from '../../database/userSettings';
+import searchYoutube, { parseSearch } from '@oogooro/search-yt';
 
 export default new SlashCommand({
     data: {
@@ -50,21 +48,22 @@ export default new SlashCommand({
                 name: 'zapętlanie',
                 description: 'W jaki sposób zapętlać',
                 choices: [
-                    { name: '🔂 Piosenka', value: '1', },
-                    { name: '🔁 Kolejka', value: '2', },
-                    { name: '🚫 Wyłączone', value: '0', },
+                    { name: '🔂 Piosenka', value: 'song', },
+                    { name: '🔁 Kolejka', value: 'queue', },
+                    { name: '🚫 Wyłączone', value: 'disabled', },
                 ],
             },
         ],
     },
     vcOnly: true,
+    global: true,
     run: async ({ interaction, logger }) => {
         const channel = (interaction.member as GuildMember).voice.channel;
         const query = interaction.options.getString('piosenka');
         const next = interaction.options.getBoolean('następna');
         const skip = interaction.options.getBoolean('pominąć');
         const shuffle = interaction.options.getBoolean('przetasować');
-        const loopMode = interaction.options.getString('zapętlanie');
+        const loopMode = interaction.options.getString('zapętlanie') as RepeatMode;
 
         const additionalInfo: string[] = [];
 
@@ -73,9 +72,9 @@ export default new SlashCommand({
         if (shuffle) additionalInfo.push('🔀 Przetasowano kolejkę');
         if (loopMode) {
             switch(loopMode) {
-                case '0': additionalInfo.push('🚫 Wyłączono zapętlanie'); break;
-                case '1': additionalInfo.push('🔂 Włączono zapętlanie piosenki'); break;
-                case '2': additionalInfo.push('🔁 Włączono zapętlanie kolejki'); break;
+                case 'disabled': additionalInfo.push('🚫 Wyłączono zapętlanie'); break;
+                case 'song': additionalInfo.push('🔂 Włączono zapętlanie piosenki'); break;
+                case 'queue': additionalInfo.push('🔁 Włączono zapętlanie kolejki'); break;
             }
         }
         
@@ -84,7 +83,7 @@ export default new SlashCommand({
         
         const queue = queues.has(interaction.guildId) ? queues.get(interaction.guildId) : new Queue(interaction.guild, interaction.channel);
 
-        if (loopMode) queue.setRepeatMode(parseInt(loopMode));
+        if (loopMode) queue.setRepeatMode(loopMode);
 
         if (!queue.connected) {
             try {
@@ -95,161 +94,8 @@ export default new SlashCommand({
             }
         }
 
-        if (ytdl.validateURL(query)) {
-            const videoInfo = await video_basic_info(query).catch(err => {
-                if (err instanceof Error && err.message.includes('Sign in')) interaction.editReply({ content: 'Nie można dodać piosenki z ograniczeniami wiekowymi!' }).catch(err => logger.error(err));
-                else {
-                    logger.error(err);
-                    interaction.editReply({ content: 'Nie udało się dostać informacji o piosence!' }).catch(err => logger.error(err));
-                }
-            });
-            if (!videoInfo) return;
-
-            if (videoInfo.video_details.upcoming)
-                return interaction.editReply({ content: 'Nie można dodać nadchodzących piosenek!', }).catch(err => logger.error(err));
-
-            const song = new YoutubeSong(videoInfo.video_details, interaction.user);
-
-            queue.addSong(song, next ? 1 : 0, shuffle, skip);
-
-            const replyContent: InteractionEditReplyOptions = {
-                embeds: createSongEmbed('Dodano', song, additionalInfo),
-            }
-
-            interaction.editReply(replyContent).catch(err => logger.error(err));
-        } else if (ytpl.validateID(query)) {
-            const playlistInfo = await ytpl(query, { limit: Infinity, }).catch(err => { logger.error(err) });
-            if (!playlistInfo) return interaction.editReply({ content: 'Nie udało się znaleźć playlisty!' }).catch(err => logger.error(err));
-            if (!playlistInfo.items.length) return interaction.editReply({ content: 'Ta playlista jest pusta!' }).catch(err => logger.error(err));
-
-            const songs: YoutubeSong[] = playlistInfo.items.map(item => new YoutubeSong({ title: item.title, duration: item.durationSec, url: item.url, }, interaction.user));
-
-            queue.addList(songs, next ? 1 : 0, shuffle, skip);
-
-            const replyContent: InteractionEditReplyOptions = {
-                embeds: [{
-                    title: 'Dodano',
-                    color: config.embedColor,
-                    description: `${playlistInfo.items.length} piosenek z ${hyperlink(playlistInfo.title, playlistInfo.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
-                    thumbnail: {
-                        url: playlistInfo.bestThumbnail.url,
-                    },
-                }],
-            }
-
-            interaction.editReply(replyContent).catch(err => logger.error(err));
-        } else if (query.startsWith('https://soundcloud.com/')) {
-            if (query.startsWith('https://soundcloud.com/playlist') || query.match(/https:\/\/soundcloud\.com\/\S*sets\/\S*/g)) { // dalej kurwa nienawidzę regexów
-                const playlistInfo = await soundcloud.playlists.getV2(query).catch(err => { logger.error(err) });
-                if (!playlistInfo) return interaction.editReply({ content: 'Nie udało się znaleźć playlisty!' }).catch(err => logger.error(err));
-
-                if (!playlistInfo.tracks.length) return interaction.editReply({ content: 'Ta playlista jest pusta!' }).catch(err => logger.error(err));
-
-                const songs: SoundcloudSong[] = playlistInfo.tracks.map(track => new SoundcloudSong(track, interaction.user));
-
-                queue.addList(songs, next ? 1 : 0, shuffle, skip);
-
-                const replyContent: InteractionEditReplyOptions = {
-                    embeds: [{
-                        title: 'Dodano',
-                        color: config.embedColor,
-                        description: `${playlistInfo.tracks.length} piosenek z ${hyperlink(playlistInfo.title, playlistInfo.permalink_url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
-                        thumbnail: {
-                            url: playlistInfo.artwork_url ?? playlistInfo.tracks.find(track => track.artwork_url).artwork_url,
-                        },
-                    }],
-                }
-
-                interaction.editReply(replyContent).catch(err => logger.error(err));
-            } else {
-                const songInfo = await soundcloud.tracks.getV2(query).catch(err => { logger.error(err) });
-                if (!songInfo) return interaction.editReply({ content: 'Nie udało się znaleźć piosenki!' }).catch(err => logger.error(err));
-                const song = new SoundcloudSong(songInfo, interaction.user);
-    
-                queue.addSong(song, next ? 1 : 0, shuffle, skip);
-    
-                const replyContent: InteractionEditReplyOptions = {
-                    embeds: createSongEmbed('Dodano', song, additionalInfo),
-                }
-    
-                interaction.editReply(replyContent).catch(err => logger.error(err));
-            }
-        } else if (query.startsWith('https://open.spotify.com/')) {
-            if (!experimentalServers.has(interaction.guildId)) return interaction.editReply({ content: 'Piosenki ze Spotify jeszcze nie są dostępne!' }).catch(err => logger.error(err));
-            if (play.is_expired()) await play.refreshToken();
-
-            const spotData = await play.spotify(query).catch(err => { logger.error(err) });
-            if (!spotData) return interaction.editReply({ content: 'Nie można znaleźć piosenki!', }).catch(err => logger.error(err));
-
-            if (spotData.type === 'track') {
-                const song = new SpotifySong(spotData as SpotifyTrack, interaction.user)
-
-                queue.addSong(song, next ? 1 : 0, shuffle, skip);
-
-                const replyContent: InteractionEditReplyOptions = {
-                    embeds: createSongEmbed('Dodano', song, additionalInfo),
-                }
-
-                interaction.editReply(replyContent).catch(err => logger.error(err));
-            } else {
-                const spotAlbumOrPlaylist = (spotData as SpotifyAlbum | SpotifyPlaylist);
-                const tracks = await spotAlbumOrPlaylist.all_tracks();
-
-                const songs = tracks.map(track => new SpotifySong(track, interaction.user));
-
-                queue.addList(songs, next ? 1 : 0, shuffle, skip);
-
-                const replyContent: InteractionEditReplyOptions = {
-                    embeds: [{
-                        title: 'Dodano',
-                        color: config.embedColor,
-                        description: `${tracks.length} piosenek z ${hyperlink(spotAlbumOrPlaylist.name, spotAlbumOrPlaylist.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
-                        thumbnail: {
-                            url: spotAlbumOrPlaylist.thumbnail.url,
-                        },
-                    }],
-                }
-
-                interaction.editReply(replyContent).catch(err => logger.error(err));
-            }
-        } else if (query.startsWith('https://') || query.startsWith('http://')) {
-            if (!experimentalServers.has(interaction.guildId)) return interaction.editReply({ content: 'Można grać tylko z youtube lub spotify' }).catch(err => logger.error(err));
-            if (!query.endsWith('.mp3')) return interaction.editReply({ content: 'Można dodwawać tylko pliki .mp3!' }).catch(err => logger.error(err));
-
-            try {
-                const readStream = await axios({
-                    method: 'GET',
-                    url: query,
-                    responseType: 'stream',
-                });
-
-                const { format: data } = await parseStream(readStream.data);
-
-                if (!data.duration) return interaction.editReply({ content: 'Nie można zagrać tej piosenki!' }).catch(err => logger.error(err));
-
-                const title = query.split('/').at(-1);
-
-                const song = new Song({
-                    duration: Math.floor(data.duration),
-                    url: query,
-                    title,
-                }, interaction.user);
-
-                queue.addSong(song, next ? 1 : 0, shuffle, skip);
-
-                const replyContent: InteractionEditReplyOptions = {
-                    embeds: [{
-                        title: 'Dodano',
-                        description: songToDisplayString(song) + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
-                        color: config.embedColor,
-                    }],
-                }
-
-                interaction.editReply(replyContent).catch(err => logger.error(err));
-            } catch (err) {
-                interaction.editReply({ content: 'Nie można zagrać tej piosenki!' }).catch(err => logger.error(err));
-            }
-        } else {
+        const resolved = await resolveSong(query);
+        if (!resolved) {
             let searchPlatform: 'yt' | 'sc' = 'yt';
             let songs: Song[] = [];
 
@@ -266,7 +112,7 @@ export default new SlashCommand({
                     description = searchResults.embedYT;
                 } else {
                     songs = searchResults.songsSC;
-                    description = searchResults.embedSC; 
+                    description = searchResults.embedSC;
                 }
 
                 const replyContent: InteractionEditReplyOptions = {
@@ -412,7 +258,18 @@ export default new SlashCommand({
                         if ((selectedSong instanceof YoutubeSong || selectedSong instanceof SoundcloudSong) && selectedSong.partial)
                             btnInteraction.editReply({ content: 'Nie udało się dostać informacji o piosence!' }).catch(err => logger.error(err));
                         else {
-                            queue.addSong(selectedSong, next ? 1 : 0, shuffle, skip);
+                            queue.add(
+                                [selectedSong],
+                                {
+                                    title: selectedSong.title,
+                                    url: selectedSong.url,
+                                },
+                                {
+                                    position: next ? 1 : 0,
+                                    shuffle,
+                                    skip,
+                                },
+                            );
 
                             const replyContent: InteractionEditReplyOptions = {
                                 embeds: createSongEmbed('Dodano', selectedSong, additionalInfo),
@@ -435,6 +292,92 @@ export default new SlashCommand({
 
             update();
             return;
+        } else if (resolved.type === 'youtubeSong') {
+            if (resolved.data.upcoming)
+                return interaction.editReply({ content: 'Nie można dodać nadchodzących piosenek!', }).catch(err => logger.error(err));
+
+            const song = new YoutubeSong(resolved.data, interaction.user);
+            queue.add([song], resolved, {
+                position: next ? 1 : 0,
+                shuffle,
+                skip,
+            },);
+
+            interaction.editReply({ embeds: createSongEmbed('Dodano', song, additionalInfo), }).catch(err => logger.error(err));
+        } else if (resolved.type === 'youtubePlaylist') {
+            const songs = resolved.data.map(song => new YoutubeSong(song, interaction.user));
+            queue.add(songs, resolved, {
+                position: next ? 1 : 0,
+                shuffle,
+                skip,
+            },);
+
+            interaction.editReply({
+                embeds: [{
+                    title: 'Dodano',
+                    color: config.embedColor,
+                    description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
+                    thumbnail: {
+                        url: resolved.thumbnailUrl,
+                    },
+                }],
+            }).catch(err => logger.error(err));
+        } else if (resolved.type === 'soundcloudTrack') {
+            const song = new SoundcloudSong(resolved.data, interaction.user);
+            queue.add([song], resolved, {
+                position: next ? 1 : 0,
+                shuffle,
+                skip,
+            },);
+
+            interaction.editReply({ embeds: createSongEmbed('Dodano', song, additionalInfo), }).catch(err => logger.error(err));
+        } else if (resolved.type === 'soundcloudPlaylist') {
+            const songs = resolved.data.map(song => new SoundcloudSong(song, interaction.user));
+            queue.add(songs, resolved, {
+                position: next ? 1 : 0,
+                shuffle,
+                skip,
+            },);
+
+            interaction.editReply({
+                embeds: [{
+                    title: 'Dodano',
+                    color: config.embedColor,
+                    description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
+                    thumbnail: {
+                        url: resolved.thumbnailUrl,
+                    },
+                }],
+            }).catch(err => logger.error(err));
+        } else if (resolved.type === 'spotifySong') {
+            const song = new SpotifySong(resolved.data, interaction.user);
+            queue.add([song], resolved, {
+                position: next ? 1 : 0,
+                shuffle,
+                skip,
+            },);
+
+            interaction.editReply({ embeds: createSongEmbed('Dodano', song, additionalInfo), }).catch(err => logger.error(err));
+        } else if (resolved.type === 'spotifyPlaylist') {
+            const songs = resolved.data.map(song => new SpotifySong(song, interaction.user));
+            queue.add(songs, resolved, {
+                position: next ? 1 : 0,
+                shuffle,
+                skip,
+            },);
+
+            interaction.editReply({
+                embeds: [{
+                    title: 'Dodano',
+                    color: config.embedColor,
+                    description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
+                    thumbnail: {
+                        url: resolved.thumbnailUrl,
+                    },
+                }],
+            }).catch(err => logger.error(err));
+        } else {
+            
         }
     },
     getAutocompletes: async ({ interaction, logger }) => {
@@ -452,37 +395,30 @@ export default new SlashCommand({
             });
             return interaction.respond(songs);
         }
-
-        if (ytdl.validateURL(query)) {
-            const info: ytdl.videoInfo | void = await ytdl.getBasicInfo(query).catch(err => { logger.error(err) });
-            if (!info) return interaction.respond([]).catch(err => logger.error(err));
-
-            return interaction.respond([{ name: info.videoDetails.title.slice(0, 100), value: info.videoDetails.video_url, }]).catch(err => { logger.error(err) });
-        } else if (ytpl.validateID(query)) {
-            const info: ytpl.Result | void = await ytpl(query).catch(err => { logger.error(err) });
-            if (!info) return interaction.respond([]).catch(err => logger.error(err));
-
-            return interaction.respond([{ name: info.title.slice(0, 100), value: info.url, }]).catch(err => { logger.error(err) });
-        } else if (query.startsWith('https://open.spotify.com/')) {
-            if (!experimentalServers.has(interaction.guildId)) return interaction.respond([]);
-            if (play.is_expired()) await play.refreshToken();
-
-            const spotData = await play.spotify(query).catch(err => { logger.error(err) });
-            if (!spotData) return interaction.respond([]);
-
-            return interaction.respond([{ name: spotData.name.slice(0, 100), value: spotData.url, }]).catch(err => { logger.error(err) });
+        const resolved = await resolveSong(query).catch(err => { logger.error(err); });
+            
+        if (resolved) {
+            return interaction.respond([{ name: `${resolved.source}: ${resolved.title}`.slice(0, 100), value: resolved.url, }]).catch(err => { logger.error(err) });
         } else {
-            if (process.env.ENV === 'dev' && !experimentalServers.has(interaction.guildId)) return interaction.respond([]).catch(err => logger.error(err));
+            if (process.env.ENV === 'dev' && !experimentalServers.has(interaction.guildId) || !process.env.YOUTUBE_KEY) return interaction.respond([]).catch(err => logger.error(err));
             const startTime = performance.now();
-    
-            const search = await youtubeSearch(query, { key: process.env.YOUTUBE_KEY, }).catch(err => { logger.error(err) });
+
+            const search = await searchYoutube({ query, key: process.env.YOUTUBE_KEY }).catch(err => { logger.error(err) });
             if (!search) return interaction.respond([]).catch(err => logger.error(err));
             
-            search.results = search.results.filter(({ kind }) => kind === 'youtube#video' || kind === 'youtube#playlist').slice(0, 25);
-            interaction.respond(search.results.map(result => { return { name: _.unescape(result.title.slice(0, 100)), value: result.link, }; } )).catch(err => logger.error(err));
-            
+            search.items = search.items.filter(item => item.id.kind === 'youtube#video' || item.id.kind === 'youtube#playlist').slice(0, 25);
+
+            const parsedSearch = parseSearch(search);
+
+            interaction.respond(parsedSearch.map(result => {
+                return {
+                    name: _.unescape(result.snippet.title.slice(0, 100)),
+                    value: result.url,
+                }
+            }));
+                
             const endTime = performance.now();
-            logger.debug(`Youtube search autocomplete took ${((endTime - startTime) / 1000).toFixed(2)}s; Found ${search.results.length} results`);
+            logger.debug(`Youtube search autocomplete took ${((endTime - startTime) / 1000).toFixed(2)}s; Found ${search.items.length} results`);
         }
     },
 });

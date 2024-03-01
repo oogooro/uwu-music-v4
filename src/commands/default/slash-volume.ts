@@ -19,6 +19,7 @@ export default new SlashCommand({
     },
     vcOnly: true,
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         const value = interaction.options.getInteger('procent');
         const [song] = queue.songs;
