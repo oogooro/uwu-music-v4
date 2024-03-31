@@ -3,40 +3,32 @@ import { LoggerOptions } from 'log4uwu';
 import moment from 'moment';
 import { botSettingsDB } from './database/botSettings';
 
-type Config = {
-    clientOptions: ClientOptions;
-    loggerOptions: LoggerOptions;
-    debugLoggerOptions: LoggerOptions;
-    embedColor: number;
-}
-
 const intentFlags = IntentsBitField.Flags;
 
 const botSettings = botSettingsDB.get(process.env.ENV);
 
-const config: Config = {
-    clientOptions: {
+export const clientOptions: ClientOptions = {
         intents: [intentFlags.Guilds, intentFlags.GuildVoiceStates, intentFlags.GuildMessages],
         partials: [Partials.Message],
         presence: {
             activities: botSettings.status.visible ? botSettings.status.data : [],
             status: botSettings.online ? 'online' : 'idle',
         }
-    },
-    loggerOptions: {
+    }
+
+export const loggerOptions: LoggerOptions = {
         transports: [
             `${__dirname}/../logs/${moment(new Date()).format('D-M-YY-HH-mm-ss')}-${process.env.ENV}.log`,
             `${__dirname}/../logs/latest-${process.env.ENV}.log`,
         ],
         debugMode: process.env.DEBUG_MODE === '1',
-    },
-    debugLoggerOptions: {
+    }
+
+export const debugLoggerOptions: LoggerOptions = {
         transports: [
             `${__dirname}/../logs/debug/${moment(new Date()).format('D-M-YY-HH-mm-ss')}-debug-${process.env.ENV}.log`,
             `${__dirname}/../logs/debug/latest-debug-${process.env.ENV}.log`,
         ],
-    },
-    embedColor: process.env.ENV === 'prod' ? 0x8b05aa : 0x000095,
-}
+    }
 
-export default config; 
+export const embedColor = process.env.ENV === 'prod' ? 0x8b05aa : 0x000095;

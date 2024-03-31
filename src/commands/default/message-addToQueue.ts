@@ -1,5 +1,5 @@
 import { ApplicationCommandType, GuildMember, hyperlink } from 'discord.js';
-import config from '../../config';
+import { embedColor } from '../../config';
 import { queues } from '../..';
 import { MessageCommand } from '../../structures/MessageCommand';
 import { Queue } from '../../structures/Queue';
@@ -58,7 +58,7 @@ export default new MessageCommand({
             interaction.editReply({
                 embeds: [{
                     title: 'Dodano',
-                    color: config.embedColor,
+                    color: embedColor,
                     description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})`,
                     thumbnail: {
                         url: resolved.thumbnailUrl,
@@ -77,7 +77,7 @@ export default new MessageCommand({
             interaction.editReply({
                 embeds: [{
                     title: 'Dodano',
-                    color: config.embedColor,
+                    color: embedColor,
                     description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})`,
                     thumbnail: {
                         url: resolved.thumbnailUrl,
@@ -96,7 +96,7 @@ export default new MessageCommand({
             interaction.editReply({
                 embeds: [{
                     title: 'Dodano',
-                    color: config.embedColor,
+                    color: embedColor,
                     description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})`,
                     thumbnail: {
                         url: resolved.thumbnailUrl,

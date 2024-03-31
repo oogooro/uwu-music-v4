@@ -2,12 +2,9 @@ import { ApplicationCommandOptionChoiceData, ApplicationCommandOptionType, Butto
 import { SlashCommand } from '../../structures/SlashCommand';
 import { experimentalServers, queues } from '../..';
 import { Queue, RepeatMode } from '../../structures/Queue';
-import config from '../../config';
+import { embedColor } from '../../config';
 import { createSongEmbed, resolveSong, searchSongs } from '../../utils';
 import { YoutubeSong } from '../../structures/YoutubeSong';
-import ytdl from 'ytdl-core';
-import ytpl from 'ytpl';
-import play from 'play-dl';
 import { Song } from '../../structures/Song';
 import { SoundcloudSong } from '../../structures/SoundcoludSong';
 import _ from 'lodash';
@@ -118,7 +115,7 @@ export default new SlashCommand({
                 const replyContent: InteractionEditReplyOptions = {
                     embeds: [{
                         title: `Wyniki wyszukiwania dla: ${query} z ${searchPlatform === 'yt' ? 'YouTube' : 'SoundCloud'}`,
-                        color: config.embedColor,
+                        color: embedColor,
                         description,
                     }],
                     components: [
@@ -315,7 +312,7 @@ export default new SlashCommand({
             interaction.editReply({
                 embeds: [{
                     title: 'Dodano',
-                    color: config.embedColor,
+                    color: embedColor,
                     description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
                     thumbnail: {
                         url: resolved.thumbnailUrl,
@@ -342,7 +339,7 @@ export default new SlashCommand({
             interaction.editReply({
                 embeds: [{
                     title: 'Dodano',
-                    color: config.embedColor,
+                    color: embedColor,
                     description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
                     thumbnail: {
                         url: resolved.thumbnailUrl,
@@ -369,7 +366,7 @@ export default new SlashCommand({
             interaction.editReply({
                 embeds: [{
                     title: 'Dodano',
-                    color: config.embedColor,
+                    color: embedColor,
                     description: `${songs.length} piosenek z ${hyperlink(resolved.title, resolved.url)}\n(dodane przez ${interaction.user.toString()})` + (additionalInfo.length ? '\n\n' + additionalInfo.join('\n') : ''),
                     thumbnail: {
                         url: resolved.thumbnailUrl,

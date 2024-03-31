@@ -1,7 +1,7 @@
 import { ActionRowBuilder, APIEmbed, ButtonBuilder, ComponentType, escapeMarkdown, hyperlink, Interaction, InteractionResponse, InteractionType, Message, StringSelectMenuBuilder, User } from 'discord.js';
 import ytsr, { Video } from 'ytsr';
 import { logger, soundcloud } from '.';
-import config from './config';
+import { embedColor } from './config';
 import { Song } from './structures/Song';
 import { SoundcloudSong } from './structures/SoundcoludSong';
 import { YoutubeSong } from './structures/YoutubeSong';
@@ -67,7 +67,7 @@ export function createSongEmbed(title: string, song: Song, additionalInfo?: stri
             url: song instanceof YoutubeSong || song instanceof SoundcloudSong || song instanceof SpotifySong ? song.thumbnail : null,
         },
         description: songToDisplayString(song) + (additionalInfo?.length ? '\n\n' + additionalInfo.join('\n') : ''),
-        color: config.embedColor,
+        color: embedColor,
     }]
 
     return embed;

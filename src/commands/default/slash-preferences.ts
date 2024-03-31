@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ComponentType, EmbedBuilder, InteractionEditReplyOptions, StringSelectMenuBuilder } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
 import { getUserSettings, userSettingsDB } from '../../database/userSettings';
-import config from '../../config';
+import { embedColor } from '../../config';
 
 export default new SlashCommand({
     data: {
@@ -19,7 +19,7 @@ export default new SlashCommand({
                 embeds: [
                     new EmbedBuilder()
                         .setTitle('Preferencje')
-                        .setColor(config.embedColor)
+                        .setColor(embedColor)
                         .setDescription(`Historia piosenek ${settings.keepHistory ? '✅' : '❌'}\nPomijanie segmentów ${settings.sponsorBlockEnabled ? '✅' : '❌'}\n\nKliknij przyciski na dole, aby zmienić`),
                 ],
                 components: [

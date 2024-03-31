@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ComponentType, InteractionReplyOptions, InteractionUpdateOptions, StringSelectMenuBuilder } from 'discord.js';
 import { client, queues } from '../..';
 import { SlashCommand } from '../../structures/SlashCommand';
-import config from '../../config';
+import { embedColor } from '../../config';
 import { songToDisplayString } from '../../utils';
 
 export default new SlashCommand({
@@ -78,7 +78,7 @@ export default new SlashCommand({
                     {
                         title: `Kolejka${loopEmoji}${pauseEmoji}`,
                         description: `${page === 0 ? currentSong : ''}${songsStringArr.join('\n\n')}`,
-                        color: config.embedColor,
+                        color: embedColor,
                         footer: {
                             text: queueEmpty ? null : `Na kolejce ${znajduje} się ${songsLeft} ${piosenek}`,
                         },

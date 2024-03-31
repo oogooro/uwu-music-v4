@@ -1,7 +1,7 @@
 import { ApplicationCommandOptionType } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
 import { queues } from '../..';
-import config from '../../config';
+import { embedColor } from '../../config';
 import { songToDisplayString, trimString } from '../../utils';
 
 function arrayMove(arr: any[], fromIndex: number, toIndex: number): void {  // thanks https://stackoverflow.com/a/6470794
@@ -54,7 +54,7 @@ export default new SlashCommand({
             embeds: [{
                 title: 'Przesunięto piosenkę',
                 description: `Przesunięto piosenkę ${songToDisplayString(song, true)} na pozycję nr **${placeIndex}**!${songIndex === placeIndex ? ' (nawet jeśli nie ma to sensu)' : ''}`,
-                color: config.embedColor,
+                color: embedColor,
             }],
         })
     },

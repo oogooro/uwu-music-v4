@@ -8,7 +8,7 @@ if (!process.env.ENV) {
 
 import { ExtendedClient } from './structures/Client';
 import { Collection } from 'discord.js';
-import config from './config';
+import { clientOptions, loggerOptions, debugLoggerOptions } from './config';
 import Logger from 'log4uwu';
 import './server/server';
 import { Queue } from './structures/Queue';
@@ -16,8 +16,8 @@ import Soundcloud from 'soundcloud.ts';
 
 Error.stackTraceLimit = 20;
 
-export const logger = new Logger(config.loggerOptions);
-export const debugLogger = new Logger(config.debugLoggerOptions);
+export const logger = new Logger(loggerOptions);
+export const debugLogger = new Logger(debugLoggerOptions);
 export const queues: Collection<string, Queue> = new Collection();
 export const experimentalServers: Set<string> = new Set();
 
@@ -35,7 +35,7 @@ if (!process.env.BOT_GUILD_ID) {
 } else if (process.env.ENV === 'dev') {
     experimentalServers.add(process.env.BOT_GUILD_ID);
 }
-export const client = new ExtendedClient(config.clientOptions);
+export const client = new ExtendedClient(clientOptions);
 export const soundcloud = new Soundcloud();
 
 client.start();
