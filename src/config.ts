@@ -13,7 +13,8 @@ export const clientOptions: ClientOptions = {
         presence: {
             activities: botSettings.status.visible ? botSettings.status.data : [],
             status: botSettings.online ? 'online' : 'idle',
-        }
+        },
+        rest: { timeout: 30_000, },
     }
 
 export const loggerOptions: LoggerOptions = {

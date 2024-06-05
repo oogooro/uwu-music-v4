@@ -3,7 +3,6 @@ import { globSync } from 'glob';
 import { Command, BotCommands } from '../typings/botCommands';
 import { DjsClientEvent } from './DjsClientEvent';
 import { logger } from '..';
-import { Agent } from 'undici';
 import { AutomatedInteractionType } from '../typings/automatedInteraction';
 import { botSettingsDB } from '../database/botSettings';
 import { DjsRestEvent } from './DjsRestEvent';
@@ -27,12 +26,6 @@ export class ExtendedClient extends Client {
 
     constructor(clientOptions: ClientOptions) {
         super(clientOptions);
-
-        this.rest.setAgent(new Agent({
-            connect: {
-                timeout: 30000,
-            },
-        }));
 
         this.init();
     }

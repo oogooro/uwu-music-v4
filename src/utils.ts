@@ -1,4 +1,4 @@
-import { ActionRowBuilder, APIEmbed, ButtonBuilder, ComponentType, escapeMarkdown, hyperlink, Interaction, InteractionResponse, InteractionType, Message, StringSelectMenuBuilder, User } from 'discord.js';
+import { ActionRow, ActionRowBuilder, AnyComponent, AnyComponentBuilder, AnySelectMenuInteraction, APIEmbed, BaseSelectMenuBuilder, ButtonBuilder, ChannelSelectMenuBuilder, ComponentType, escapeMarkdown, hyperlink, Interaction, InteractionResponse, InteractionType, MentionableSelectMenuBuilder, Message, MessageActionRowComponent, RoleSelectMenuBuilder, StringSelectMenuBuilder, User, UserSelectMenuBuilder } from 'discord.js';
 import ytsr, { Video } from 'ytsr';
 import { logger, soundcloud } from '.';
 import { embedColor } from './config';
@@ -285,19 +285,20 @@ export const disableComponents = async (interactionResponse: InteractionResponse
     const message = await interactionResponse.fetch().catch(err => { logger.error(err); });
     if (!message) return;
 
-    const disabledRows = message.components.reduce((a: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[], row) => {
-        const components = row.toJSON().components.reduce((a: (ButtonBuilder | StringSelectMenuBuilder)[], component) => {
-            let builder: (ButtonBuilder | StringSelectMenuBuilder) = (component.type === ComponentType.Button) ? ButtonBuilder.from(component) : StringSelectMenuBuilder.from(component);
-            builder.setDisabled(true);
-            a.push(builder);
-            return a;
-        }, []);
-        const disabledRow = (components[0].data.type === ComponentType.Button) ?
-            new ActionRowBuilder<ButtonBuilder>().addComponents(components as ButtonBuilder[]) :
-            new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(components as StringSelectMenuBuilder[]);
-        a.push(disabledRow);
-        return a;
-    }, []);
+    const disabledRows: ActionRowBuilder<StringSelectMenuBuilder>[] & ActionRowBuilder<ChannelSelectMenuBuilder>[] & ActionRowBuilder<UserSelectMenuBuilder>[] & ActionRowBuilder<MentionableSelectMenuBuilder>[] & ActionRowBuilder<RoleSelectMenuBuilder>[] & ActionRowBuilder<ButtonBuilder>[] = [];
+
+    message.components.forEach(row => {
+        const disabledRow = new ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder | ChannelSelectMenuBuilder | UserSelectMenuBuilder | MentionableSelectMenuBuilder | RoleSelectMenuBuilder>();
+        row.components.forEach(component => {
+            if (component.type === ComponentType.Button) disabledRow.addComponents(ButtonBuilder.from(component).setDisabled(true));
+            else if (component.type === ComponentType.StringSelect) disabledRow.addComponents(StringSelectMenuBuilder.from(component).setDisabled(true));
+            else if (component.type === ComponentType.ChannelSelect) disabledRow.addComponents(ChannelSelectMenuBuilder.from(component).setDisabled(true));
+            else if (component.type === ComponentType.UserSelect) disabledRow.addComponents(UserSelectMenuBuilder.from(component).setDisabled(true));
+            else if (component.type === ComponentType.MentionableSelect) disabledRow.addComponents(MentionableSelectMenuBuilder.from(component).setDisabled(true));
+            else if (component.type === ComponentType.RoleSelect) disabledRow.addComponents(RoleSelectMenuBuilder.from(component).setDisabled(true));
+        });
+        disabledRows.push(disabledRow as ActionRowBuilder<StringSelectMenuBuilder> & ActionRowBuilder<ChannelSelectMenuBuilder> & ActionRowBuilder<UserSelectMenuBuilder> & ActionRowBuilder<MentionableSelectMenuBuilder> & ActionRowBuilder<RoleSelectMenuBuilder>[] & ActionRowBuilder<ButtonBuilder>);
+    });
 
     interactionResponse.edit({ components: disabledRows, }).catch(err => logger.error(err));
 }
