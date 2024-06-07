@@ -10,6 +10,7 @@ export default new SlashCommand({
     },
     dev: true,
     disabled: true,
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         
     },

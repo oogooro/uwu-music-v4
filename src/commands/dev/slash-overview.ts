@@ -6,6 +6,7 @@ export default new SlashCommand({
         name: 'status',
         description: '[DEV] Status bota',
     },
+    dev: true,
     run: async ({ interaction, logger }) => {
         const commandArray: string[] = [];
         const publicCommandsArray: string[] = [];

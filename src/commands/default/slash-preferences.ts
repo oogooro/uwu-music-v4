@@ -1,13 +1,15 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ComponentType, EmbedBuilder, InteractionEditReplyOptions, StringSelectMenuBuilder } from 'discord.js';
 import { SlashCommand } from '../../structures/SlashCommand';
 import { getUserSettings, userSettingsDB } from '../../database/userSettings';
-import config from '../../config';
+import { embedColor } from '../../config';
+import { disableComponents } from '../../utils';
 
 export default new SlashCommand({
     data: {
         name: 'preferences',
         description: 'Zmienia preferencje użytkownika',
     },
+    global: true,
     run: async ({ interaction, logger, queue }) => {
         const settings = getUserSettings(interaction.user.id);
 
@@ -18,7 +20,7 @@ export default new SlashCommand({
                 embeds: [
                     new EmbedBuilder()
                         .setTitle('Preferencje')
-                        .setColor(config.embedColor)
+                        .setColor(embedColor)
                         .setDescription(`Historia piosenek ${settings.keepHistory ? '✅' : '❌'}\nPomijanie segmentów ${settings.sponsorBlockEnabled ? '✅' : '❌'}\n\nKliknij przyciski na dole, aby zmienić`),
                 ],
                 components: [
@@ -70,22 +72,7 @@ export default new SlashCommand({
                 const message = await interaction.fetchReply().catch(err => logger.error(err));
                 if (typeof message === 'string') return;
 
-                const disabledRows = message.components.reduce((a: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[], row) => {
-                    const components = row.toJSON().components.reduce((a: (ButtonBuilder | StringSelectMenuBuilder)[], component) => {
-                        let builder: (ButtonBuilder | StringSelectMenuBuilder) = (component.type === ComponentType.Button) ? ButtonBuilder.from(component) : StringSelectMenuBuilder.from(component);
-                        builder.setDisabled(true);
-                        a.push(builder);
-                        return a;
-                    }, []);
-                    const disabledRow = (components[0].data.type === ComponentType.Button) ?
-                        new ActionRowBuilder<ButtonBuilder>().addComponents(components as ButtonBuilder[]) :
-                        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(components as StringSelectMenuBuilder[]);
-                    a.push(disabledRow);
-                    return a;
-                }, []);
-
-                interaction.editReply({ components: disabledRows, })
-                    .catch(err => logger.error(err));
+                disableComponents(interactionResponse);
             }
         });
     },

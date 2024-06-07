@@ -20,11 +20,11 @@ export type SlashCommandType = {
     data: ChatInputApplicationCommandData;
     disabled?: boolean;
     dev?: boolean;
-    private?: boolean;
     global?: boolean;
     nsfw?: boolean;
     vcOnly?: boolean;
     queueRequired?: boolean;
+    experimental?: boolean;
     run: RunFunction;
     getAutocompletes?: RunFunctionAutocomplete;
 };

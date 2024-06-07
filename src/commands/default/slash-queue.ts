@@ -1,9 +1,8 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ComponentType, InteractionReplyOptions, InteractionUpdateOptions, StringSelectMenuBuilder } from 'discord.js';
 import { client, queues } from '../..';
 import { SlashCommand } from '../../structures/SlashCommand';
-import config from '../../config';
-import { songToDisplayString } from '../../utils';
-import { RepeatMode } from '../../typings/repeatMode';
+import { embedColor } from '../../config';
+import { disableComponents, songToDisplayString } from '../../utils';
 
 export default new SlashCommand({
     data: {
@@ -12,6 +11,7 @@ export default new SlashCommand({
         dmPermission: false,
     },
     queueRequired: true,
+    global: true,
     run: async ({ interaction, logger, queue, }) => {
         if (!queue.songs.length)
             return interaction.reply({ content: 'Kolejka jest pusta!', ephemeral: true, }).catch(err => logger.error(err));
@@ -45,17 +45,15 @@ export default new SlashCommand({
 
             let pauseEmoji: string = queue.paused ? ' :pause_button:' : '';
 
-            let loopEmoji: string;
+            let loopEmoji = '';
             switch (queue.repeatMode) {
-                case RepeatMode.Disabled:
+                case 'disabled':
                     loopEmoji = '';
                     break;
-
-                case RepeatMode.Queue:
+                case 'queue':
                     loopEmoji = ' 🔁';
                     break;
-
-                case RepeatMode.Song:
+                case 'song':
                     loopEmoji = ' 🔂';
                     break;
             }
@@ -80,7 +78,7 @@ export default new SlashCommand({
                     {
                         title: `Kolejka${loopEmoji}${pauseEmoji}`,
                         description: `${page === 0 ? currentSong : ''}${songsStringArr.join('\n\n')}`,
-                        color: config.embedColor,
+                        color: embedColor,
                         footer: {
                             text: queueEmpty ? null : `Na kolejce ${znajduje} się ${songsLeft} ${piosenek}`,
                         },
@@ -180,22 +178,7 @@ export default new SlashCommand({
             const message = await interaction.fetchReply().catch(err => logger.error(err));
             if (typeof message === 'string') return;
 
-            const disabledRows = message.components.reduce((a: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[], row) => {
-                const components = row.toJSON().components.reduce((a: (ButtonBuilder | StringSelectMenuBuilder)[], component) => {
-                    let builder: (ButtonBuilder | StringSelectMenuBuilder) = (component.type === ComponentType.Button) ? ButtonBuilder.from(component) : StringSelectMenuBuilder.from(component);
-                    builder.setDisabled(true);
-                    a.push(builder);
-                    return a;
-                }, []);
-                const disabledRow = (components[0].data.type === ComponentType.Button) ?
-                    new ActionRowBuilder<ButtonBuilder>().addComponents(components as ButtonBuilder[]) :
-                    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(components as StringSelectMenuBuilder[]);
-                a.push(disabledRow);
-                return a;
-            }, []);
-
-            interaction.editReply({ components: disabledRows, })
-                .catch(err => logger.error(err));
+            disableComponents(interactionResponse);
         });
 
     },

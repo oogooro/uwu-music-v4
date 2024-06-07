@@ -1,9 +1,17 @@
 import { User } from 'discord.js';
 import { video_basic_info, YouTubeVideo } from 'play-dl';
 import { SongData } from '../typings/song';
-import { SongChapterMetadata } from '../typings/songChatperMetadata';
-import { SongUploaderMetadata } from '../typings/songUploaderMetadata';
 import { Song } from './Song';
+
+interface SongChapterMetadata {
+    title: string;
+    startTime: number;
+}
+
+interface SongUploaderMetadata {
+    channel: string;
+    url: string;
+}
 
 function isYouTubeVideo(object: any): object is YouTubeVideo {
     return 'durationRaw' in object;
