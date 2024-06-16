@@ -1,3 +1,4 @@
+import { getVoiceConnections } from '@discordjs/voice';
 import { client } from '../..';
 import { SlashCommand } from '../../structures/SlashCommand';
 
@@ -31,6 +32,7 @@ export default new SlashCommand({
 > Ping ws: \`${client.ws.ping}ms\`
 > Uptime: \`${(client.uptime/3600000).toFixed(2)}h\`
 > Serwery: \`${client.guilds.cache.size}\`
+> Połączenia głosowe: \`${getVoiceConnections().size}\`
 `;
 
         interaction.reply({ content, ephemeral: true, })

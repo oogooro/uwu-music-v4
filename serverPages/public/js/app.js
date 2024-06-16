@@ -51,7 +51,8 @@ const pageFunctions = {
                     <span class='bold'>Podsumowanie</span>
                     Ping ws: ${data.ping || '-1'}ms
                     Uptime: ${(data.uptime / 3600000).toFixed(2)}h
-                    Serwery: ${data.guilds.length}`;
+                    Serwery: ${data.guilds.length}
+                    Połączenia głosowe: ${data.voiceConnections}`;
         
                 botStatusBoxElement.innerHTML = content.split('\n').join('<br/>');
             }).catch(err => {

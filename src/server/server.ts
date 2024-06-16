@@ -5,6 +5,7 @@ import { join } from 'path';
 import { client, logger } from '..';
 import { botSettingsDB } from '../database/botSettings';
 import { ActivityType } from 'discord.js';
+import { getVoiceConnections } from '@discordjs/voice';
 
 export const app = express();
 export const server = http.createServer(app);
@@ -58,6 +59,7 @@ app.get('/api/:endpoint/:options?', (req, res) => {
                     users: client.users.cache,
                     ENV: process.env.ENV,
                     ready: client.isReady(),
+                    voiceConnections: getVoiceConnections().size,
                 });
             }
             break;
