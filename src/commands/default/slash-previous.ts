@@ -19,7 +19,7 @@ export default new SlashCommand({
 
         queue.songs.unshift(song);
 
-        queue.audioPlayer.play();
+        queue.playAudioResource();
 
         const interactionResponse = await interaction.deferReply().catch(err => { logger.error(err) });
         if (!interactionResponse) return;

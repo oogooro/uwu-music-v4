@@ -2,6 +2,7 @@ import { ClientOptions, IntentsBitField, Partials } from 'discord.js';
 import { LoggerOptions } from 'log4uwu';
 import moment from 'moment';
 import { botSettingsDB } from './database/botSettings';
+import { join } from 'node:path';
 
 const intentFlags = IntentsBitField.Flags;
 
@@ -33,3 +34,5 @@ export const debugLoggerOptions: LoggerOptions = {
     }
 
 export const embedColor = process.env.ENV === 'prod' ? 0x8b05aa : 0x000095;
+
+export const ytdlpPath = join(__dirname, '../bin/yt-dlp' + (process.platform === 'win32' ? '.exe' : ''));
