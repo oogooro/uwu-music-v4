@@ -11,13 +11,10 @@ import { songToDisplayString } from '../utils';
 import { SoundcloudSong } from './SoundcoludSong';
 import { FFmpeg } from 'prism-media';
 import { pipeline, Readable } from 'node:stream';
-import YTDlpWrap from 'yt-dlp-wrap-plus';
-import { ytdlpPath } from '../config';
 import { stream } from 'play-dl';
 import { soundcloud } from '..';
 
 const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
-const ytdlp = new YTDlpWrap(ytdlpPath);
 
 export type RepeatMode = 'disabled' | 'song' | 'queue';
 export type AddOptions = {

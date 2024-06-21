@@ -34,5 +34,3 @@ export const debugLoggerOptions: LoggerOptions = {
     }
 
 export const embedColor = process.env.ENV === 'prod' ? 0x8b05aa : 0x000095;
-
-export const ytdlpPath = join(__dirname, '../bin/yt-dlp' + (process.platform === 'win32' ? '.exe' : ''));
