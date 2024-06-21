@@ -13,6 +13,8 @@ import { FFmpeg } from 'prism-media';
 import { pipeline, Readable } from 'node:stream';
 import YTDlpWrap from 'yt-dlp-wrap-plus';
 import { ytdlpPath } from '../config';
+import { stream } from 'play-dl';
+import { soundcloud } from '..';
 
 const sponsorBlock = new SponsorBlock(process.env.SPONSORBLOCK_USER_ID);
 const ytdlp = new YTDlpWrap(ytdlpPath);
@@ -26,7 +28,7 @@ export type AddOptions = {
 
 export class Queue {
     private seekOffset = 0;
-    private player: AudioPlayer;
+    public player: AudioPlayer;
     public currentResource: AudioResource;
     public guild: Guild;
     public connected = false;
@@ -118,37 +120,36 @@ export class Queue {
         const songurl = ytSong?.url ?? song.url;
 
         try {
-            const stream = ytdlp.execStream(['-f', 'ba', '--no-playlist', songurl]);
-            const readable = new Readable({ read() { } });
-            stream.on('data', data => { readable.push(data); });
-    
-            const resource = createAudioResource(pipeline(readable, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
-            resource.volume.setVolume(song.volume ?? 0.5);
-            this.currentResource = resource;
-            this.seekOffset = seekTime;
-    
-            this.player.play(resource);
-            connection.subscribe(this.player);
+            if (ytSong) {
+                const ytStream = await stream(songurl, { seek: seekTime, quality: 2 })
+                const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type, inlineVolume: true, });
+                resource.volume.setVolume(ytSong.volume ?? 0.5);
+                this.currentResource = resource;
+                this.seekOffset = seekTime;
+
+                this.player.play(resource);
+
+                connection.subscribe(this.player);
+            } else if (song instanceof SoundcloudSong) {
+                seekTime = Math.floor(seekTime);
+
+                const stream = await soundcloud.util.streamTrack(songurl);
+                //@ts-ignore fuck you
+                const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
+                resource.volume.setVolume(song.volume);
+                this.currentResource = resource;
+                this.seekOffset = seekTime;
+
+                this.player.play(resource);
+
+                connection.subscribe(this.player);
+            } else { // normal song
+                this.handlePlayAudioResourceFail(song);
+            }
         } catch (error) {
             logger.error(error);
             this.handlePlayAudioResourceFail(song);
         }
-
-        // if (ytSong) {
-        //     const stream = ytdlp.execStream(['-f', 'ba', ytSong.url]);
-        //     const readable = new Readable({ read() {} });
-        //     stream.on('data', data => { readable.push(data); });
-            
-        //     const resource = createAudioResource(pipeline(readable, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
-        //     resource.volume.setVolume(ytSong.volume ?? 0.5);
-        //     this.currentResource = resource;
-        //     this.seekOffset = seekTime;
-
-        //     this.player.play(resource);
-
-        // } else if (song instanceof SoundcloudSong) {
-        // } else { // normal song
-        // }
     }
 
    public getCurrentDuration(): number {
@@ -310,6 +311,7 @@ export class Queue {
         const connection = getVoiceConnection(this.guild.id);
 
         connection?.destroy();
+        //@ts-ignore
         this.player.removeAllListeners();
         queues.delete(this.guild.id);
         logger.debug(`[QUEUE] Said byebye to ${this.guild.id}`);
