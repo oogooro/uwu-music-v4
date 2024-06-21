@@ -25,7 +25,7 @@ export default new SlashCommand({
         const [song] = queue.songs;
         const volume = value / 100
         song.volume = volume;
-        queue.audioPlayer.currentResource.volume.setVolume(volume);
+        queue.currentResource.volume.setVolume(volume);
         interaction.reply({ content: `Ustawiono głosność piosenki na ${value}%`, }).catch(err => logger.error(err));
     },
 });

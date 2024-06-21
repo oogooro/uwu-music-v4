@@ -19,7 +19,7 @@ export default new SlashCommand({
         if (!song) return interaction.reply({ content: 'Aktualnie nic nie gra!' }).catch(err => logger.error(err));
 
         const PROGRESS_LENGHT: number = 30;
-        const progress = Math.round(queue.audioPlayer.getCurrentDuration() / song.duration * PROGRESS_LENGHT);
+        const progress = Math.round(queue.getCurrentDuration() / song.duration * PROGRESS_LENGHT);
 
         let progressString = '[';
 
@@ -59,7 +59,7 @@ export default new SlashCommand({
         interaction.editReply({
             embeds: [{
                 title: 'Teraz gra',
-                description: `${songToDisplayString(song)}\n\n\`${formatTimeDisplay(queue.audioPlayer.getCurrentDuration())} / ${song.formatedDuration} ${progressString}\``,
+                description: `${songToDisplayString(song)}\n\n\`${formatTimeDisplay(queue.getCurrentDuration())} / ${song.formatedDuration} ${progressString}\``,
                 thumbnail: {
                     url: (song instanceof YoutubeSong || song instanceof SoundcloudSong || song instanceof SpotifySong ? song.thumbnail : null),
                 },

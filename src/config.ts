@@ -2,6 +2,7 @@ import { ClientOptions, IntentsBitField, Partials } from 'discord.js';
 import { LoggerOptions } from 'log4uwu';
 import moment from 'moment';
 import { botSettingsDB } from './database/botSettings';
+import { join } from 'node:path';
 
 const intentFlags = IntentsBitField.Flags;
 

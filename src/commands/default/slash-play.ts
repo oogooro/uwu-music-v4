@@ -390,7 +390,7 @@ export default new SlashCommand({
                     value: item.url,
                 });
             });
-            return interaction.respond(songs);
+            return interaction.respond(songs).catch(err => logger.error(err));
         }
         const resolved = await resolveSong(query).catch(err => { logger.error(err); });
             
@@ -412,7 +412,7 @@ export default new SlashCommand({
                     name: _.unescape(result.snippet.title.slice(0, 100)),
                     value: result.url,
                 }
-            }));
+            })).catch(err => logger.error(err));
                 
             const endTime = performance.now();
             logger.debug(`Youtube search autocomplete took ${((endTime - startTime) / 1000).toFixed(2)}s; Found ${search.items.length} results`);
