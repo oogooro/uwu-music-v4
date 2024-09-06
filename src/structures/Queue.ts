@@ -118,8 +118,9 @@ export class Queue {
 
         try {
             if (ytSong) {
-                const ytStream = await stream(songurl, { seek: seekTime, quality: 2 })
-                const resource = createAudioResource(ytStream.stream, { inputType: ytStream.type, inlineVolume: true, });
+                const { stream: ytStream } = await stream(songurl, { quality: 2 });
+                //@ts-ignore
+                const resource = createAudioResource(pipeline(ytStream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });
                 resource.volume.setVolume(ytSong.volume ?? 0.5);
                 this.currentResource = resource;
                 this.seekOffset = seekTime;
@@ -128,8 +129,6 @@ export class Queue {
 
                 connection.subscribe(this.player);
             } else if (song instanceof SoundcloudSong) {
-                seekTime = Math.floor(seekTime);
-
                 const stream = await soundcloud.util.streamTrack(songurl);
                 //@ts-ignore fuck you
                 const resource = createAudioResource(pipeline(stream, transcoder, () => void 0), { inputType: StreamType.Raw, inlineVolume: true, });

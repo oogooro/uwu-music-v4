@@ -47,40 +47,38 @@ export default new SlashCommand({
     queueRequired: true,
     global: true,
     run: async ({ interaction, logger, queue, }) => {
-        return interaction.reply({ content: 'Komenda zepsuta. Nie używaj xdddd', ephemeral: true, }).catch(err => logger.error(err));
+        if (!queue.songs.length)
+            return interaction.reply({ content: 'Kolejka jest pusta!', ephemeral: true, }).catch(err => logger.error(err));
 
-        // if (!queue.songs.length)
-        //     return interaction.reply({ content: 'Kolejka jest pusta!', ephemeral: true, }).catch(err => logger.error(err));
+        if (queue.songs[0] instanceof YoutubeSong && queue.songs[0].live) return interaction.reply({ content: 'Nie można przewijać live!', ephemeral: true, }).catch(err => logger.error(err));
 
-        // if (queue.songs[0] instanceof YoutubeSong && queue.songs[0].live) return interaction.reply({ content: 'Nie można przewijać live!', ephemeral: true, }).catch(err => logger.error(err));
+        let seekTime = -1;
 
-        // let seekTime = -1;
-
-        // if (interaction.options.getSubcommand() === 'time') {
-        //     const time = interaction.options.getString('timestamp');
+        if (interaction.options.getSubcommand() === 'time') {
+            const time = interaction.options.getString('timestamp');
     
-        //     const [ sec, min, hour ] = time.split(':').reverse();
+            const [ sec, min, hour ] = time.split(':').reverse();
     
-        //     const timeSecs = ( (parseInt(hour) * 3600) || 0 ) + ( (parseInt(min) * 60) || 0 ) + (parseInt(sec));
-        //     if (isNaN(timeSecs) || timeSecs < 0)
-        //         return interaction.reply({ content: 'Nie potrafię rozczytać podani mi czas! Użyj formatu HH:MM:SS czyli np jak chcesz przewinąć do 8 minuty i 20 sekundy piosenki wpisz 8:20', ephemeral: true, }).catch(err => logger.error(err));
+            const timeSecs = ( (parseInt(hour) * 3600) || 0 ) + ( (parseInt(min) * 60) || 0 ) + (parseInt(sec));
+            if (isNaN(timeSecs) || timeSecs < 0)
+                return interaction.reply({ content: 'Nie potrafię rozczytać podani mi czas! Użyj formatu HH:MM:SS czyli np jak chcesz przewinąć do 8 minuty i 20 sekundy piosenki wpisz 8:20', ephemeral: true, }).catch(err => logger.error(err));
 
-        //     if (timeSecs > queue.songs[0].duration - 1)
-        //         return interaction.reply({ content: `Nie można przewinąć tak daleko!`, ephemeral: true, }).catch(err => logger.error(err));
+            if (timeSecs > queue.songs[0].duration - 1)
+                return interaction.reply({ content: `Nie można przewinąć tak daleko!`, ephemeral: true, }).catch(err => logger.error(err));
     
-        //     seekTime = timeSecs;
-        // } else {
-        //     const time = parseInt(interaction.options.getString('chapter'));
+            seekTime = timeSecs;
+        } else {
+            const time = parseInt(interaction.options.getString('chapter'));
 
-        //     if (isNaN(time) || time < 0) 
-        //         return interaction.reply({ content: 'Nie można przewinąć do podanego chapteru', ephemeral: true, }).catch(err => logger.error(err));
-        //     seekTime = time;
-        // }
+            if (isNaN(time) || time < 0) 
+                return interaction.reply({ content: 'Nie można przewinąć do podanego chapteru', ephemeral: true, }).catch(err => logger.error(err));
+            seekTime = time;
+        }
 
-        // queue.seek(seekTime);
+        queue.seek(seekTime);
 
-        // interaction.reply({ content: `Przewinięto do \`${formatTimeDisplay(seekTime)}\`!` })
-        //     .catch(err => logger.error(err));
+        interaction.reply({ content: `Przewinięto do \`${formatTimeDisplay(seekTime)}\`!` })
+            .catch(err => logger.error(err));
     },
     getAutocompletes: async ({ interaction, logger }) => {
         const queue = queues.get(interaction.guildId);
