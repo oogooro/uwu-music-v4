@@ -9,7 +9,7 @@ import { SpotifySong } from './structures/SpotifySong';
 import ytdl from 'ytdl-core';
 import ytpl from 'ytpl';
 import play, { SpotifyAlbum, SpotifyPlaylist, SpotifyTrack, video_basic_info, YouTubeVideo } from 'play-dl';
-import { SoundcloudTrackV2 } from 'soundcloud.ts';
+import { SoundcloudTrack } from 'soundcloud.ts';
 import { SongData } from './typings/song';
 
 export function generateInteractionTrace(interaction: Interaction): string {
@@ -99,7 +99,7 @@ export async function searchSongs(query: string, user: User): Promise<searchResu
         const filterVideos = filters.get('Type').get('Video');
 
         const ytSearchPromise = ytsr(filterVideos.url, { limit: Math.floor(SEARCH_ENTRIES_LIMIT * 1.5), });
-        const scSearchPromise = soundcloud.tracks.searchV2({ q: query, limit: SEARCH_ENTRIES_LIMIT, });
+        const scSearchPromise = soundcloud.tracks.search({ q: query, limit: SEARCH_ENTRIES_LIMIT, });
 
         return Promise.all([ ytSearchPromise, scSearchPromise ]).then(([ ytSearch, scSearch ]) => {
             if (!ytSearch.results) throw new Error('No videos found');
@@ -159,7 +159,7 @@ interface PlayableItemSoundcloudTrack {
     type: 'soundcloudTrack';
     title: string;
     url: string;
-    data: SoundcloudTrackV2;
+    data: SoundcloudTrack;
     source: 'SoundCloud';
 }
 
@@ -167,7 +167,7 @@ interface PlayableItemSoundcloudPlaylist {
     type: 'soundcloudPlaylist';
     title: string;
     url: string;
-    data: SoundcloudTrackV2[];
+    data: SoundcloudTrack[];
     thumbnailUrl: string;
     source: 'SoundCloud';
 }
@@ -223,7 +223,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
         }
     } else if (url.startsWith('https://soundcloud.com/')) { // SoundCloud
         if (url.startsWith('https://soundcloud.com/playlist') || url.match(/https:\/\/soundcloud\.com\/\S*sets\/\S*/g)) { // SoundCloud playlist or set
-            const playlistInfo = await soundcloud.playlists.getV2(url).catch(err => { logger.error(err) });
+            const playlistInfo = await soundcloud.playlists.get(url).catch(err => { logger.error(err) });
             if (!playlistInfo) return null;
             if (!playlistInfo.tracks.length) return null;
 
@@ -236,7 +236,7 @@ export const resolveSong = async (url: string): Promise<PlayableItem | null> => 
                 url,
             }
         } else { // SoundCloud track
-            const songInfo = await soundcloud.tracks.getV2(url).catch(err => { logger.error(err) });
+            const songInfo = await soundcloud.tracks.get(url).catch(err => { logger.error(err) });
             if (!songInfo) return null;
 
             return {

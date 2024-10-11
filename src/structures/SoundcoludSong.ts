@@ -1,10 +1,10 @@
 import { User } from 'discord.js';
 import { SongData } from '../typings/song';
 import { Song } from './Song';
-import { SoundcloudTrackV2 } from 'soundcloud.ts';
+import { SoundcloudTrack } from 'soundcloud.ts';
 import { soundcloud } from '..';
 
-function isSoundCloudTrack(object: SongData | SoundcloudTrackV2): object is SoundcloudTrackV2 {
+function isSoundCloudTrack(object: SongData | SoundcloudTrack): object is SoundcloudTrack {
     return 'permalink_url' in object;
 }
 
@@ -14,7 +14,7 @@ export class SoundcloudSong extends Song {
     public partial: boolean = true;
     public uploader: string;
 
-    constructor(metadata: SongData | SoundcloudTrackV2, addedByUser: User) {
+    constructor(metadata: SongData | SoundcloudTrack, addedByUser: User) {
         let data: SongData;
         if (isSoundCloudTrack(metadata)) {
             data = {
@@ -30,7 +30,7 @@ export class SoundcloudSong extends Song {
         if (isSoundCloudTrack(metadata)) this.patch(metadata);
     }
 
-    public patch(metadata?: SoundcloudTrackV2): Promise<void> {
+    public patch(metadata?: SoundcloudTrack): Promise<void> {
         if (metadata) {
             this.partial = false;
 
@@ -41,7 +41,7 @@ export class SoundcloudSong extends Song {
         }
 
         return new Promise(async (resolve, reject) => {
-            soundcloud.tracks.getV2(this.url)
+            soundcloud.tracks.get(this.url)
                 .then(info => {
                     this.patch(info)
                         .then(resolve)

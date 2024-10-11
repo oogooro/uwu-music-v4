@@ -1,5 +1,5 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, StreamType, VoiceConnectionStatus } from '@discordjs/voice';
-import { APIEmbedThumbnail, Guild, TextBasedChannel, VoiceBasedChannel } from 'discord.js';
+import { APIEmbedThumbnail, Guild, GuildTextBasedChannel, TextBasedChannel, VoiceBasedChannel } from 'discord.js';
 import { shuffle } from 'lodash';
 import { logger, queues } from '..';
 import { Song } from './Song';
@@ -35,9 +35,9 @@ export class Queue {
     public previousSongs: Song[] = [];
     public paused = false;
     public playing = false;
-    public textChannel: TextBasedChannel;
+    public textChannel: GuildTextBasedChannel;
 
-    constructor(guild: Guild, channel: TextBasedChannel) {
+    constructor(guild: Guild, channel: GuildTextBasedChannel) {
         this.guild = guild;
         this.textChannel = channel;
 
@@ -166,6 +166,7 @@ export class Queue {
                 connection = joinVoiceChannel({
                     channelId: channel.id,
                     guildId: channel.guild.id,
+                    //@ts-ignore
                     adapterCreator: channel.guild.voiceAdapterCreator,
                 });
 
