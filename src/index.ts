@@ -9,7 +9,7 @@ if (!process.env.ENV) {
 import { ExtendedClient } from './structures/Client';
 import { Collection } from 'discord.js';
 import { clientOptions, loggerOptions, debugLoggerOptions } from './config';
-import Logger from 'log4uwu';
+import { Logger } from 'log4uwu';
 import './server/server';
 import { Queue } from './structures/Queue';
 import Soundcloud from 'soundcloud.ts';
